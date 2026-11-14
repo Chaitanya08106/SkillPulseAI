@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Virtual Interview | SkillPulse</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ff:'Sora',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --ink:#06060f;--surface:#09091a;--card:#0e0e1f;--card2:#13132a;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
+  --pulse:#00d4ff;--glow:#7c3aed;--fire:#ff6b2b;--green:#22c55e;--yellow:#f59e0b;
+  --text:#e2e8f0;--muted:#64748b;--muted2:#94a3b8;--r:12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--ff);background:var(--ink);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* ── TOPBAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 28px;background:rgba(6,6,15,.92);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);position:sticky;top:0;z-index:50}
+.logo{font-size:20px;font-weight:800;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--pulse);box-shadow:0 0 10px var(--pulse)}
+.logo span{color:var(--pulse)}
+.mock-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;background:rgba(0,212,255,.1);color:var(--pulse);border:1px solid rgba(0,212,255,.2)}
+.back-btn{padding:7px 14px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:9px;color:var(--muted2);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .2s;text-decoration:none}
+.back-btn:hover{color:#fff;background:rgba(255,255,255,.09)}
+.main{flex:1;overflow-y:auto;padding:28px;max-width:760px;margin:0 auto;width:100%}
+
+/* ── SCREENS ── */
+.screen{display:none}
+.screen.on{display:block;animation:pgFade .25s ease forwards}
+@keyframes pgFade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── LOCKED ── */
+.locked-wrap{max-width:520px;margin:60px auto;text-align:center}
+.locked-icon{width:96px;height:96px;border-radius:24px;background:linear-gradient(135deg,rgba(239,68,68,.12),rgba(239,68,68,.06));border:1px solid rgba(239,68,68,.25);display:flex;align-items:center;justify-content:center;font-size:42px;margin:0 auto 28px}
+.locked-wrap h1{font-size:28px;font-weight:800;color:#fff;letter-spacing:-.8px;margin-bottom:10px}
+.locked-wrap p{color:var(--muted2);font-size:15px;line-height:1.75;max-width:400px;margin:0 auto 24px}
+.locked-meta{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;text-align:left;margin-bottom:22px}
+.lm-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);font-size:13px}
+.lm-row:last-child{border-bottom:none}
+.lm-key{color:var(--muted)}
+.lm-val{color:#fff;font-weight:600}
+.status-pill{padding:4px 12px;border-radius:100px;font-size:12px;font-weight:700}
+.pill-locked{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.pill-unlocked{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+.refresh-btn{margin-top:20px;padding:11px 28px;background:var(--card);border:1.5px solid var(--border2);border-radius:10px;color:var(--text);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .2s}
+.refresh-btn:hover{border-color:var(--pulse);color:var(--pulse)}
+
+/* ── CONFIG ── */
+.config-center{max-width:640px;margin:0 auto}
+.config-hero{text-align:center;padding:32px 0 28px}
+.config-hero .icon-wrap{width:80px;height:80px;margin:0 auto 18px;border-radius:20px;background:linear-gradient(135deg,rgba(0,212,255,.15),rgba(124,58,237,.15));border:1px solid rgba(0,212,255,.2);display:flex;align-items:center;justify-content:center;font-size:36px}
+.config-hero h1{font-size:28px;font-weight:800;color:#fff;letter-spacing:-.8px;margin-bottom:8px}
+.config-hero p{color:var(--muted2);font-size:14px;line-height:1.7;max-width:440px;margin:0 auto}
+.config-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:14px}
+.config-panel h3{font-size:14px;font-weight:700;color:#fff;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.field label{display:block;font-size:11px;font-weight:600;color:var(--muted2);margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px}
+.field select{width:100%;padding:11px 13px;background:var(--card2);border:1.5px solid var(--border);border-radius:10px;color:#fff;font-size:14px;font-family:var(--ff);outline:none;transition:border-color .2s;-webkit-appearance:none}
+.field select:focus{border-color:var(--pulse)}
+.field select option{background:var(--card2)}
+.opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rules-banner{background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.15);border-radius:10px;padding:14px 18px;margin-bottom:14px;font-size:13px;color:#93c5fd;line-height:1.8}
+.rules-banner strong{color:#fff;display:block;margin-bottom:5px;font-size:14px}
+.start-btn{width:100%;padding:15px;background:linear-gradient(135deg,var(--pulse),#009fc2);color:#06060f;border:none;border-radius:var(--r);font-size:16px;font-weight:800;cursor:pointer;font-family:var(--ff);transition:all .25s;display:flex;align-items:center;justify-content:center;gap:10px}
+.start-btn:hover{box-shadow:0 0 36px rgba(0,212,255,.4);transform:translateY(-1px)}
+.start-btn:disabled{opacity:.5;pointer-events:none;transform:none}
+
+/* ── LOADING ── */
+.loading-wrap{max-width:480px;margin:70px auto;text-align:center}
+.loader-ring{width:72px;height:72px;margin:0 auto 24px;border-radius:50%;border:3px solid var(--border);border-top-color:var(--pulse);animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-wrap h2{font-size:22px;font-weight:800;color:#fff;margin-bottom:8px}
+.progress-steps{display:flex;flex-direction:column;gap:8px;margin-top:24px;text-align:left;background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px}
+.pstep{display:flex;align-items:center;gap:12px;font-size:13px;color:var(--muted);transition:color .3s}
+.pstep.done{color:var(--green)}
+.pstep.active{color:var(--pulse)}
+.pstep-icon{width:20px;text-align:center}
+
+/* ── INTERVIEW ROOM ── */
+.top-bar-strip{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.q-counter{font-size:13px;color:var(--muted)}
+.q-counter strong{color:#fff;font-size:16px}
+.timer-pill{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:15px;font-weight:700;color:var(--pulse);background:var(--card);border:1px solid var(--border);padding:6px 16px;border-radius:100px;transition:all .3s}
+.timer-pill.warn{color:var(--yellow);border-color:rgba(245,158,11,.3)}
+.timer-pill.danger{color:#f87171;border-color:rgba(239,68,68,.3);animation:pulse-border 1s infinite}
+@keyframes pulse-border{0%,100%{box-shadow:none}50%{box-shadow:0 0 12px rgba(239,68,68,.3)}}
+.prog-bar-wrap{height:3px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:18px}
+.prog-bar-fill{height:100%;background:linear-gradient(90deg,var(--pulse),var(--glow));border-radius:2px;transition:width .6s ease}
+
+/* Q nav dots */
+.q-dots-strip{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:18px}
+.qdot{width:26px;height:26px;border-radius:6px;border:1.5px solid var(--border);background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted);transition:all .2s;font-family:var(--mono)}
+.qdot.active{border-color:var(--pulse);color:var(--pulse);background:rgba(0,212,255,.08)}
+.qdot.answered{border-color:rgba(34,197,94,.4);color:var(--green);background:rgba(34,197,94,.07)}
+.qdot.skipped{border-color:rgba(255,107,43,.3);color:var(--fire);background:transparent}
+
+/* ARIA card */
+.aria-card{background:var(--card);border:1px solid rgba(0,212,255,.14);border-radius:18px;padding:22px;margin-bottom:14px;position:relative;overflow:hidden}
+.aria-card::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(0,212,255,.04),transparent 60%);pointer-events:none}
+.aria-header{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+.aria-avatar-wrap{position:relative;flex-shrink:0}
+.aria-avatar{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(0,212,255,.18),rgba(124,58,237,.2));border:2px solid rgba(0,212,255,.25);display:flex;align-items:center;justify-content:center;font-size:22px;transition:border-color .3s}
+.aria-ring{position:absolute;inset:-6px;border-radius:50%;border:2px solid transparent;pointer-events:none;transition:all .3s}
+@keyframes ring-blue{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.1);opacity:.3}}
+@keyframes ring-green{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.1);opacity:.3}}
+@keyframes ring-purple{0%,100%{transform:scale(1);opacity:.8}50%{transform:scale(1.1);opacity:.2}}
+.aria-info{flex:1}
+.aria-name{font-size:14px;font-weight:800;color:#fff}
+.aria-status-row{display:flex;align-items:center;gap:6px;margin-top:3px}
+.aria-status-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);transition:background .3s}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.aria-status-text{font-size:12px;color:var(--muted2)}
+.replay-btn{padding:6px 12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:9px;color:var(--muted2);font-size:12px;cursor:pointer;font-family:var(--ff);transition:all .2s;white-space:nowrap;flex-shrink:0}
+.replay-btn:hover{color:#fff;border-color:rgba(255,255,255,.2)}
+
+/* ARIA speech bubble */
+.aria-bubble{background:var(--card2);border:1px solid rgba(0,212,255,.1);border-radius:12px;padding:16px;font-size:15px;color:#fff;font-weight:500;line-height:1.75;min-height:54px}
+.q-badges{display:flex;gap:7px;margin-top:10px}
+.qbadge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px}
+.q-tip{margin-top:10px;padding:9px 13px;background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.12);border-radius:9px;font-size:12px;color:#c4b5fd;line-height:1.6;display:none}
+
+/* ARIA live reaction bubble */
+.aria-react-bubble{margin-top:10px;padding:8px 13px;border-radius:9px;border:1px solid transparent;font-size:13px;font-weight:600;color:#fff;opacity:0;transform:translateY(-6px);transition:opacity .3s ease,transform .3s ease;pointer-events:none;display:flex;align-items:center;gap:7px;min-height:0}
+@keyframes bubble-pop{0%{transform:scale(.88) translateY(4px);opacity:0}100%{transform:scale(1) translateY(0);opacity:1}}
+
+/* ANSWER section */
+.answer-card{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px;margin-bottom:14px}
+.answer-header{font-size:12px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.waveform{display:flex;align-items:center;gap:3px;height:30px;justify-content:center;opacity:.35;transition:opacity .3s;margin-bottom:8px}
+.wvbar{width:3px;border-radius:3px;background:var(--pulse);height:5px;transition:height .08s ease}
+.mic-btn{width:70px;height:70px;border-radius:50%;border:2px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);font-size:24px;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;outline:none;margin:0 auto 10px}
+@keyframes mic-pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}70%{box-shadow:0 0 0 16px rgba(239,68,68,0)}}
+.mic-label{font-size:13px;font-weight:600;color:var(--muted2);text-align:center;margin-bottom:14px}
+.transcript-box{background:var(--card2);border:1.5px solid var(--border);border-radius:11px;padding:14px;min-height:100px;max-height:180px;overflow-y:auto;font-size:14px;color:#fff;line-height:1.75;outline:none;transition:border-color .2s;font-family:var(--ff)}
+.transcript-box:focus{border-color:var(--pulse)}
+.transcript-hint{margin-top:7px;font-size:12px;color:var(--muted);min-height:18px}
+
+/* ACTION ROW */
+.action-row{display:flex;gap:10px}
+.btn-submit{flex:1;padding:14px;background:linear-gradient(135deg,var(--pulse),#009fc2);color:#06060f;border:none;border-radius:var(--r);font-size:15px;font-weight:800;cursor:pointer;font-family:var(--ff);transition:all .2s}
+.btn-submit:hover{box-shadow:0 0 24px rgba(0,212,255,.4)}
+.btn-submit:disabled{opacity:.5;pointer-events:none}
+.btn-skip{padding:14px 20px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);color:var(--muted2);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .2s}
+.btn-skip:hover{color:#fff;border-color:rgba(255,255,255,.2)}
+
+/* ── EVAL ── */
+.eval-wrap{max-width:480px;margin:70px auto;text-align:center}
+.eval-icon{font-size:64px;margin-bottom:20px;animation:float 2s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+.eval-bar-bg{width:100%;max-width:320px;height:6px;background:var(--border);border-radius:4px;overflow:hidden;margin:20px auto 10px}
+.eval-bar-fill{height:100%;background:linear-gradient(90deg,var(--pulse),var(--glow));border-radius:4px;transition:width .4s ease;width:0%}
+.eval-status{font-size:12px;color:var(--muted);margin-top:8px}
+
+/* ── RESULTS ── */
+.results-wrap{max-width:700px;margin:0 auto}
+.score-ring-big{width:140px;height:140px;border-radius:50%;margin:0 auto 20px;display:flex;align-items:center;justify-content:center;position:relative}
+.score-ring-big svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}
+.score-ring-big .inner{text-align:center;z-index:1}
+.score-big{font-size:36px;font-weight:800;color:#fff;font-family:var(--mono);letter-spacing:-2px;line-height:1}
+.score-sub{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+.rec-badge{display:inline-flex;align-items:center;gap:6px;padding:7px 18px;border-radius:100px;font-size:14px;font-weight:700;margin-bottom:24px}
+.sub-scores{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px}
+.ss-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center}
+.ss-icon{font-size:18px;margin-bottom:6px}
+.ss-val{font-size:20px;font-weight:800;font-family:var(--mono)}
+.ss-lbl{font-size:11px;color:var(--muted);margin-top:3px}
+.hr-summary-box{background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.2);border-radius:var(--r);padding:18px;margin-bottom:14px}
+.hr-summary-box .label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#a78bfa;font-weight:700;margin-bottom:8px}
+.str-imp{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+.si-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:16px}
+.si-label{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:8px}
+.qa-list{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:14px}
+.qa-item{border-bottom:1px solid var(--border);padding:14px 0}
+.qa-item:first-child{padding-top:0}
+.qa-item:last-child{border-bottom:none;padding-bottom:0}
+.qa-q{font-size:13px;font-weight:600;color:#fff;margin-bottom:7px;display:flex;align-items:flex-start;gap:8px}
+.qa-qnum{color:var(--pulse);font-family:var(--mono);flex-shrink:0}
+.qa-score-row{display:flex;align-items:center;gap:12px;margin-bottom:6px}
+.qa-bar-bg{flex:1;height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden}
+.qa-bar-fill{height:100%;border-radius:3px}
+.verdict-chip{font-size:11px;font-weight:700;padding:2px 10px;border-radius:20px}
+.qa-comment{font-size:12px;color:var(--muted2);line-height:1.6}
+.qa-answer{margin-top:7px;font-size:12px;color:var(--muted);font-style:italic;background:rgba(255,255,255,.03);padding:8px 12px;border-radius:7px;border-left:2px solid var(--border)}
+.action-btns{display:flex;gap:12px;margin-top:8px}
+.ab{flex:1;padding:13px;border-radius:var(--r);border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .25s;text-align:center;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:8px}
+.ab-primary{background:linear-gradient(135deg,var(--pulse),#009fc2);color:#06060f}
+.ab-primary:hover{box-shadow:0 0 28px rgba(0,212,255,.4)}
+.ab-secondary{background:var(--card);color:var(--text);border:1.5px solid var(--border2)}
+.ab-secondary:hover{border-color:rgba(255,255,255,.25)}
+
+/* TOAST */
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--card2);border:1px solid var(--border2);border-radius:12px;padding:12px 18px;font-size:14px;color:#fff;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:toast-in .3s ease forwards}
+@keyframes toast-in{from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="user.html" class="logo"><div class="logo-dot"></div>Skill<span>Pulse</span></a>
+  <span class="mock-badge">🎙️ Virtual Interview</span>
+  <a href="user.html" class="back-btn">← Back to Dashboard</a>
+</div>
+
+<div class="main">
+
+  <!-- ══ LOCKED ══ -->
+  <div class="screen on" id="screenLocked" style="display:flex;align-items:center;justify-content:center;min-height:calc(100vh - 65px)">
+    <div class="locked-wrap">
+      <div class="locked-icon">🎤</div>
+      <h1>Interview Locked</h1>
+      <p>Your virtual interview has not been enabled yet. HR must review and approve your resume before you can begin.</p>
+      <div class="locked-meta">
+        <div class="lm-row"><span class="lm-key">Candidate</span><span class="lm-val" id="lmName">—</span></div>
+        <div class="lm-row"><span class="lm-key">Role</span><span class="lm-val" id="lmRole">—</span></div>
+        <div class="lm-row"><span class="lm-key">Status</span><span id="lmStatus"><span class="status-pill pill-locked">🔒 Locked by HR</span></span></div>
+        <div class="lm-row"><span class="lm-key">Action Required</span><span class="lm-val" style="color:#f59e0b">Awaiting HR approval</span></div>
+      </div>
+      <p style="font-size:13px;color:var(--muted)">Once HR approves your resume, refresh this page to begin your interview.</p>
+      <button class="refresh-btn" onclick="recheckUnlock()">🔄 Refresh Status</button>
+    </div>
+  </div>
+
+  <!-- ══ CONFIG ══ -->
+  <div class="screen" id="screenConfig">
+    <div class="config-center">
+      <div class="config-hero">
+        <div class="icon-wrap">🎙️</div>
+        <h1>Live AI Interview</h1>
+        <p>ARIA — your AI interviewer — will speak each question aloud and listen to your answers. Reactions happen in real time, just like a real office interview.</p>
+      </div>
+
+      <div class="rules-banner">
+        <strong>📋 Before You Begin</strong>
+        <ul style="margin-left:16px">
+          <li>Allow microphone access when your browser asks.</li>
+          <li>Be in a quiet place — ARIA listens to your voice.</li>
+          <li>Your score, transcript and AI evaluation are sent to HR.</li>
+          <li>You cannot pause once the interview starts.</li>
+        </ul>
+      </div>
+
+      <div class="config-panel">
+        <h3>🤖 ARIA — Your Interviewer</h3>
+        <div style="display:flex;align-items:center;gap:16px;padding:14px;background:var(--card2);border-radius:10px;margin-bottom:16px">
+          <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,rgba(0,212,255,.2),rgba(124,58,237,.2));border:2px solid rgba(0,212,255,.3);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0">🤖</div>
+          <div>
+            <div style="font-size:15px;font-weight:800;color:#fff">ARIA — Senior HR Director</div>
+            <div style="font-size:12px;color:var(--pulse);margin-top:2px">Speaks • Listens • Reacts naturally • Reports to HR</div>
+          </div>
+        </div>
+        <div class="opt-grid">
+          <div class="field">
+            <label>Number of Questions</label>
+            <select id="cfgQCount">
+              <option value="5">5 Questions (~10 min)</option>
+              <option value="8">8 Questions (~15 min)</option>
+              <option value="10" selected>10 Questions (~20 min)</option>
+              <option value="12">12 Questions (~25 min)</option>
+              <option value="15">15 Questions (~30 min)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Difficulty Level</label>
+            <select id="cfgDiff">
+              <option value="mixed" selected>Mixed (Recommended)</option>
+              <option value="easy">Easy — Entry Level</option>
+              <option value="medium">Medium — Mid Level</option>
+              <option value="hard">Hard — Senior Level</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <button class="start-btn" id="startBtn" onclick="startInterview()">
+        🎙️ Begin Live Interview with ARIA →
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ LOADING ══ -->
+  <div class="screen" id="screenLoading">
+    <div class="loading-wrap">
+      <div class="loader-ring"></div>
+      <h2>Preparing your interview…</h2>
+      <p style="color:var(--muted2);font-size:14px;margin-top:6px" id="loadSubtext">ARIA is crafting your questions</p>
+      <div class="progress-steps">
+        <div class="pstep" id="ps1"><span class="pstep-icon">⏳</span> Connecting to AI engine</div>
+        <div class="pstep" id="ps2"><span class="pstep-icon">⏳</span> Analysing your profile &amp; role</div>
+        <div class="pstep" id="ps3"><span class="pstep-icon">⏳</span> Generating personalised questions</div>
+        <div class="pstep" id="ps4"><span class="pstep-icon">⏳</span> Preparing ARIA's voice</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ INTERVIEW ROOM ══ -->
+  <div class="screen" id="screenInterview">
+
+    <div class="top-bar-strip">
+      <div class="q-counter">Question <strong id="qNum">—</strong> of <strong id="qTotal">—</strong></div>
+      <div class="timer-pill" id="timerPill">⏱ <span id="timerText">—</span></div>
+    </div>
+    <div class="prog-bar-wrap"><div class="prog-bar-fill" id="progFill" style="width:0%"></div></div>
+    <div class="q-dots-strip" id="qDotsStrip"></div>
+
+    <!-- ARIA card -->
+    <div class="aria-card">
+      <div class="aria-header">
+        <div class="aria-avatar-wrap">
+          <div class="aria-avatar" id="ariaAvatar">🤖</div>
+          <div class="aria-ring" id="ariaRing"></div>
+        </div>
+        <div class="aria-info">
+          <div class="aria-name">ARIA — Senior HR Director</div>
+          <div class="aria-status-row">
+            <span class="aria-status-dot" id="statusDot"></span>
+            <span class="aria-status-text" id="statusText">Ready</span>
+          </div>
+        </div>
+        <button class="replay-btn" onclick="replayQuestion()">🔊 Replay</button>
+      </div>
+      <div class="aria-bubble">
+        <div id="qText">Preparing your interview…</div>
+        <div class="q-badges" id="qBadges"></div>
+      </div>
+      <div class="q-tip" id="qTip"></div>
+      <!-- Live reaction bubble -->
+      <div class="aria-react-bubble" id="ariaBubbleLive">
+        <span style="font-size:15px">🤖</span>
+        <span id="ariaReactText"></span>
+      </div>
+    </div>
+
+    <!-- Answer card -->
+    <div class="answer-card">
+      <div class="answer-header">
+        <span>🎙️ Your Answer</span>
+        <span id="wordCount" style="font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0">0 words</span>
+      </div>
+      <div class="waveform" id="waveform">
+        <div class="wvbar"></div><div class="wvbar"></div><div class="wvbar"></div>
+        <div class="wvbar"></div><div class="wvbar"></div><div class="wvbar"></div>
+        <div class="wvbar"></div><div class="wvbar"></div><div class="wvbar"></div>
+        <div class="wvbar"></div><div class="wvbar"></div>
+      </div>
+      <button class="mic-btn" id="micBtn" onclick="toggleMic()">🎙️</button>
+      <div class="mic-label" id="micLabel">Press mic to speak your answer</div>
+      <div class="transcript-box" id="ansBox" contenteditable="true"
+        data-placeholder="Your spoken answer appears here… you can also type directly."
+        oninput="syncWordCount()"></div>
+      <div class="transcript-hint" id="ansHint"></div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-submit" id="nextBtn" onclick="nextQ()">Submit Answer →</button>
+      <button class="btn-skip" onclick="skipQ()">Skip ⏩</button>
+    </div>
+  </div>
+
+  <!-- ══ EVALUATING ══ -->
+  <div class="screen" id="screenEval">
+    <div class="eval-wrap">
+      <div class="eval-icon">🤖</div>
+      <h2 style="font-size:24px;font-weight:800;color:#fff;margin-bottom:8px">Evaluating your interview…</h2>
+      <p style="color:var(--muted2);font-size:14px" id="evalSubtext">Analysing your responses</p>
+      <div class="eval-bar-bg"><div class="eval-bar-fill" id="evalBarFill"></div></div>
+      <div class="eval-status" id="evalStatus">Preparing…</div>
+    </div>
+  </div>
+
+  <!-- ══ RESULTS ══ -->
+  <div class="screen" id="screenResults">
+    <div class="results-wrap" id="resultsContent"></div>
+  </div>
+
+</div><!-- /main -->
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+// ── KILL SPEECH IMMEDIATELY ON PAGE UNLOAD / REFRESH / HIDE ──
+// speechSynthesis persists across page loads — must cancel it explicitly
+(function killSpeechOnExit() {
+  const kill = () => {
+    try { window.speechSynthesis.cancel(); } catch(e) {}
+  };
+  window.addEventListener('beforeunload',  kill);
+  window.addEventListener('pagehide',      kill);
+  window.addEventListener('unload',        kill);
+  // Also kill when tab goes to background (e.g. user switches tabs)
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) kill();
+  });
+  // Kill immediately on page load in case previous session left speech running
+  kill();
+})();
+
+const SB_URL = "https://egfysmqrdgdukmgpqdaa.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnZnlzbXFyZGdkdWttZ3BxZGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNjcwNzksImV4cCI6MjA4ODY0MzA3OX0.dzafzM8gUgz8-57CWW7symF5BZ3KS8qLN7OadOWRpfs";
+const sb = supabase.createClient(SB_URL, SB_KEY, {
+  auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true, storageKey:'skillpulse_auth' }
+});
+const GROQ_KEY  = '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';
+const GROQ_URL  = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_BIG  = 'llama-3.3-70b-versatile';
+const GROQ_FAST = 'llama-3.1-8b-instant';
+
+// ── APP STATE ──
+const S = {
+  user: null, profile: null,
+  questions: [], answers: [], curQ: 0,
+  finalText: '',
+};
+
+// ── VOICE STATE ──
+const IV = {
+  synth: window.speechSynthesis,
+  voice: null,
+  recognition: null,
+  isRecording: false,
+  isSpeaking: false,
+  timerInterval: null,
+  waveInterval: null,
+  silenceTimer: null,
+  lastBCTime: 0,
+  _aiReacting: false,
+  _bubbleFade: null,
+};
+
+// ══════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════
+(async () => {
+  try {
+    const { data } = await Promise.race([
+      sb.auth.getSession(),
+      new Promise((_, r) => setTimeout(() => r(new Error('timeout')), 4000))
+    ]);
+    if (!data?.session) { location.href = 'login.html'; return; }
+    S.user = data.session.user;
+  } catch(e) { location.href = 'login.html'; return; }
+
+  // Load profile — ALWAYS fetch fresh from DB, never use cache for unlock status
+  try {
+    const { data: p, error } = await sb.from('profiles')
+      .select('*').eq('id', S.user.id).single();
+    if (p && !error) {
+      S.profile = p;
+      // Update localStorage with fresh data
+      try { localStorage.setItem('sp_profile_' + S.user.id, JSON.stringify(p)); } catch(e) {}
+    }
+  } catch(e) { console.warn('Profile fetch error:', e.message); }
+
+  // Only use cache as absolute last resort — but NEVER for interview_unlocked
+  if (!S.profile) {
+    const m = S.user.user_metadata || {};
+    S.profile = { id: S.user.id, email: S.user.email,
+      first_name: m.first_name || S.user.email.split('@')[0],
+      last_name: m.last_name || '', target_role: 'Software Engineer',
+      hr_status: 'pending', interview_unlocked: false };
+  }
+
+  renderPage();
+
+  // Realtime unlock listener
+  sb.channel('vi-' + S.user.id)
+    .on('postgres_changes', { event:'UPDATE', schema:'public', table:'profiles', filter:`id=eq.${S.user.id}` }, p => {
+      S.profile = { ...S.profile, ...p.new };
+      renderPage();
+      if (p.new.interview_unlocked) toast('🎉 HR approved! You can now begin your interview.');
+    }).subscribe();
+
+  // Polling fallback every 8s — for hosted apps where realtime may fail
+  setInterval(async () => {
+    try {
+      const { data } = await sb.from('profiles').select('interview_unlocked,hr_status,interview_score').eq('id', S.user.id).single();
+      if (!data) return;
+      const prevUnlocked = S.profile.interview_unlocked;
+      S.profile = { ...S.profile, ...data };
+      if (!prevUnlocked && data.interview_unlocked) {
+        renderPage();
+      }
+    } catch(e) {}
+  }, 8000);
+})();
+
+function renderPage() {
+  const p = S.profile;
+  // Always use DB value for unlock status — never fall back to localStorage
+  const unlocked = !!p.interview_unlocked;
+  document.getElementById('lmName').textContent = ((p.first_name||'') + ' ' + (p.last_name||'')).trim() || p.email;
+  document.getElementById('lmRole').textContent = p.target_role || '—';
+  if (unlocked && !p.interview_score) {
+    showScreen('screenConfig');
+  } else if (p.interview_score) {
+    // Already done — show results
+    showScreen('screenResults');
+    if (!document.getElementById('resultsContent').innerHTML.trim()) renderStoredResults();
+  } else {
+    showScreen('screenLocked');
+  }
+}
+
+async function recheckUnlock() {
+  try {
+    const { data } = await sb.from('profiles').select('interview_unlocked,interview_score,hr_status,assessment_unlocked').eq('id', S.user.id).single();
+    if (data) { S.profile = { ...S.profile, ...data }; renderPage(); }
+    if (!data?.interview_unlocked) toast('⏳ Still locked. HR hasn\'t approved yet.');
+  } catch(e) { toast('⚠️ Could not check status. Try again.'); }
+}
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => { s.classList.remove('on'); s.style.display = 'none'; });
+  const el = document.getElementById(id);
+  if (el) { el.style.display = 'block'; requestAnimationFrame(() => el.classList.add('on')); }
+}
+
+// ══════════════════════════════════════════
+// VOICE ENGINE
+// ══════════════════════════════════════════
+function initVoice() {
+  if (IV.voice) return;
+  const voices = IV.synth.getVoices();
+  IV.voice = voices.find(v => /samantha|karen|moira|fiona|google uk english female/i.test(v.name))
+    || voices.find(v => v.lang === 'en-GB')
+    || voices.find(v => v.lang.startsWith('en') && /female|woman/i.test(v.name))
+    || voices.find(v => v.lang.startsWith('en')) || voices[0];
+}
+if (window.speechSynthesis.onvoiceschanged !== undefined)
+  window.speechSynthesis.onvoiceschanged = initVoice;
+setTimeout(initVoice, 500);
+
+function ariaSpeak(text, onEnd, soft) {
+  if (!IV.synth) { if (onEnd) onEnd(); return; }
+  IV.synth.cancel();
+  IV.isSpeaking = true;
+  if (!soft) { setStatus('speaking', 'ARIA is speaking…'); setRing('blue'); }
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.rate = soft ? 1.05 : 0.88; utt.pitch = 1.1; utt.volume = soft ? 0.7 : 1;
+  if (IV.voice) utt.voice = IV.voice;
+  utt.onend = () => {
+    IV.isSpeaking = false;
+    if (!soft) { setStatus('listening', 'Your turn — press mic to answer'); setRing('green'); }
+    if (onEnd) onEnd();
+  };
+  utt.onerror = () => { IV.isSpeaking = false; if (onEnd) onEnd(); };
+  IV.synth.speak(utt);
+  setTimeout(() => { if (IV.isSpeaking) IV.synth.resume(); }, 200);
+}
+
+function setStatus(state, text) {
+  const dot = document.getElementById('statusDot');
+  const lbl = document.getElementById('statusText');
+  if (!dot||!lbl) return;
+  lbl.textContent = text;
+  const c = { speaking:'#00d4ff', listening:'#22c55e', thinking:'#eab308', reacting:'#a78bfa', idle:'#64748b' };
+  dot.style.background = c[state]||'#64748b';
+  dot.style.animation = state!=='idle' ? 'blink 0.8s infinite' : 'none';
+}
+
+function setRing(mode) {
+  const ring = document.getElementById('ariaRing');
+  const av = document.getElementById('ariaAvatar');
+  if (!ring) return;
+  const m = {
+    blue:   { border:'rgba(0,212,255,.5)',   anim:'ring-blue 1.2s ease-in-out infinite',   cc:'rgba(0,212,255,.6)' },
+    green:  { border:'rgba(34,197,94,.4)',   anim:'ring-green 1.2s ease-in-out infinite',  cc:'rgba(34,197,94,.4)' },
+    purple: { border:'rgba(124,58,237,.5)',  anim:'ring-purple .9s ease-in-out infinite',  cc:'rgba(124,58,237,.5)' },
+  };
+  const cfg = m[mode];
+  if (cfg) { ring.style.border='2px solid '+cfg.border; ring.style.animation=cfg.anim; if(av) av.style.borderColor=cfg.cc; }
+  else { ring.style.border='2px solid transparent'; ring.style.animation='none'; if(av) av.style.borderColor='rgba(0,212,255,.25)'; }
+}
+
+function showBubble(text, type) {
+  const bubble = document.getElementById('ariaBubbleLive');
+  const span = document.getElementById('ariaReactText');
+  if (!bubble||!span) return;
+  span.textContent = text;
+  bubble.style.background = type==='bc' ? 'rgba(124,58,237,.12)' : 'rgba(34,197,94,.1)';
+  bubble.style.borderColor  = type==='bc' ? 'rgba(124,58,237,.25)' : 'rgba(34,197,94,.2)';
+  bubble.style.opacity = '1'; bubble.style.transform = 'translateY(0)';
+  clearTimeout(IV._bubbleFade);
+  IV._bubbleFade = setTimeout(() => {
+    bubble.style.opacity='0'; bubble.style.transform='translateY(-6px)';
+  }, type==='bc' ? 2200 : 3000);
+}
+
+// ── MICROPHONE ──
+function toggleMic() {
+  if (IV.isSpeaking) { IV.synth.cancel(); IV.isSpeaking = false; }
+  if (IV.isRecording) stopMic(); else startMic();
+}
+
+function startMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { toast('⚠️ Speech recognition not supported. Please type your answer.'); return; }
+  IV.recognition = new SR();
+  IV.recognition.continuous = true;
+  IV.recognition.interimResults = true;
+  IV.recognition.lang = 'en-US';
+  const ansEl = document.getElementById('ansBox');
+  S.finalText = ansEl.textContent.trim();
+  ansEl.removeAttribute('data-empty');
+  IV.recognition.onresult = e => {
+    let interim = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        const seg = e.results[i][0].transcript.trim();
+        if (!seg) continue;
+        S.finalText += (S.finalText ? ' ' : '') + seg;
+        // Fire AI reaction on each finalized segment
+        if (!IV.isSpeaking && Date.now() - IV.lastBCTime > 3200)
+          fireReaction(seg, S.finalText);
+      } else interim = e.results[i][0].transcript;
+    }
+    ansEl.textContent = S.finalText + (interim ? ' ' + interim : '');
+    syncWordCount();
+    // Silence detection
+    clearTimeout(IV.silenceTimer);
+    IV.silenceTimer = setTimeout(() => {
+      if (IV.isRecording && !IV.isSpeaking && Date.now()-IV.lastBCTime > 5000) {
+        const wc = S.finalText.trim().split(/\s+/).filter(w=>w).length;
+        if (wc > 3) fireReaction('', S.finalText, true);
+      }
+    }, 2500);
+  };
+  IV.recognition.onerror = e => { if (e.error==='not-allowed') { toast('❌ Mic access denied.'); stopMic(); } };
+  IV.recognition.onend = () => { if (IV.isRecording) { try { IV.recognition.start(); } catch(e){} } };
+  IV.recognition.start();
+  IV.isRecording = true;
+  IV.lastBCTime = Date.now();
+  setMicUI(true); startWave();
+  setStatus('listening','Listening to you…'); setRing('green');
+}
+
+function stopMic() {
+  clearTimeout(IV.silenceTimer);
+  IV.isRecording = false;
+  try { IV.recognition?.stop(); } catch(e) {}
+  IV.recognition = null;
+  setMicUI(false); stopWave();
+  const ansEl = document.getElementById('ansBox');
+  if (ansEl && S.finalText) ansEl.textContent = S.finalText;
+  syncWordCount();
+  // AI acknowledgement of the answer
+  const wc = S.finalText.trim().split(/\s+/).filter(w=>w).length;
+  if (wc > 3) {
+    getAIReaction(S.finalText.split(/\s+/).slice(-12).join(' '), S.finalText).then(phrase => {
+      if (phrase) { showBubble(phrase, 'ack'); ariaSpeak(phrase, null, true); }
+    });
+  }
+  setStatus('idle','Answer captured — click Submit when ready'); setRing('none');
+}
+
+function setMicUI(rec) {
+  const btn = document.getElementById('micBtn');
+  const lbl = document.getElementById('micLabel');
+  if (btn) {
+    btn.style.background = rec ? 'rgba(239,68,68,.18)' : 'rgba(255,255,255,.06)';
+    btn.style.borderColor = rec ? 'rgba(239,68,68,.6)' : 'rgba(255,255,255,.15)';
+    btn.style.animation = rec ? 'mic-pulse 1.5s ease-in-out infinite' : 'none';
+    btn.innerHTML = rec ? '⏹️' : '🎙️';
+  }
+  if (lbl) lbl.textContent = rec ? 'Recording… click to stop' : 'Press mic to speak your answer';
+}
+function startWave() {
+  const bars = document.querySelectorAll('.wvbar');
+  const wv = document.getElementById('waveform');
+  if (wv) wv.style.opacity='1';
+  IV.waveInterval = setInterval(() => bars.forEach(b => b.style.height=(3+Math.random()*26)+'px'), 90);
+}
+function stopWave() {
+  clearInterval(IV.waveInterval);
+  document.querySelectorAll('.wvbar').forEach((b,i) => b.style.height=[5,10,18,7,24,12,20,8,26,14,7][i]+'px');
+  const wv = document.getElementById('waveform'); if (wv) wv.style.opacity='.35';
+}
+
+// ── AI REACTION (fast model, short response) ──
+async function getAIReaction(segment, fullText) {
+  if (IV._aiReacting) return null;
+  IV._aiReacting = true;
+  const recent = (fullText||'').trim().split(/\s+/).slice(-20).join(' ');
+  const seg = (segment||'').trim().slice(0,120);
+  const prompt = `You are ARIA, a warm and professional HR director in a real office interview. The candidate is speaking and you are actively listening.
+
+Candidate just said: "${seg}"
+
+Give a VERY short natural human reaction — exactly like a real HR would say while listening. 2-5 words max.
+
+Examples of natural human reactions:
+- "Oh, interesting." / "I see, okay." / "Right, right." / "Mm, go on." / "Ah okay." / "That makes sense." / "Oh really?" / "Noted, okay." / "I see what you mean." / "Fair enough." / "Alright." / "Mm-hmm, okay." / "Oh I see." / "Sure, sure." / "Right, understood."
+
+If candidate says they don't know: "That's okay." / "No worries at all." / "Take your time."
+If candidate mentions something impressive: "Oh interesting!" / "That's good to know." / "I see."
+If candidate is uncertain: "I understand." / "Okay, fair enough."
+
+NEVER say: Perfect, Great, Excellent, Wonderful, Fantastic, Amazing, Awesome, Brilliant
+Just reply with the short reaction words only. Nothing else.`;
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 1500);
+    const res = await fetch(GROQ_URL, {
+      method:'POST', signal:ctrl.signal,
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_KEY},
+      body:JSON.stringify({ model:GROQ_FAST, max_tokens:10, temperature:0.3,
+        messages:[{role:'user',content:prompt}] })
+    });
+    clearTimeout(tid);
+    const d = await res.json();
+    const raw = (d.choices?.[0]?.message?.content||'').trim().replace(/['"*]/g,'');
+    const words = raw.split(/\s+/).filter(Boolean);
+    if (words.length>=1 && words.length<=6) {
+      IV._aiReacting = false;
+      return raw.match(/[.!?]$/) ? raw : raw+'.';
+    }
+  } catch(e) {}
+  IV._aiReacting = false;
+  return null;
+}
+
+async function fireReaction(segment, fullText, isPause) {
+  if (IV.isSpeaking) return;
+  if (Date.now()-IV.lastBCTime < 2000) return;
+  IV.lastBCTime = Date.now();
+  const phrase = await Promise.race([
+    getAIReaction(segment, fullText),
+    new Promise(r => setTimeout(()=>r(null), 1100))
+  ]);
+  if (!phrase) return;
+  showBubble(phrase, 'bc');
+  setRing('purple'); setStatus('reacting','ARIA is reacting…');
+  ariaSpeak(phrase, () => {
+    if (IV.isRecording) { setRing('green'); setStatus('listening','Listening to you…'); }
+  }, true);
+}
+
+function syncWordCount() {
+  const ansEl = document.getElementById('ansBox'); if (!ansEl) return;
+  const words = ansEl.textContent.trim().split(/\s+/).filter(w=>w).length;
+  const wc = document.getElementById('wordCount'); if (wc) wc.textContent = words+' words';
+  const hint = document.getElementById('ansHint'); if (!hint) return;
+  if (!words) { hint.textContent=''; return; }
+  if (words<15) { hint.textContent='⚠️ Too brief — elaborate more'; hint.style.color='#f87171'; }
+  else if (words<50) { hint.textContent='🟡 Good — more detail helps'; hint.style.color='#eab308'; }
+  else { hint.textContent='✅ Great depth!'; hint.style.color='#22c55e'; }
+}
+
+function replayQuestion() {
+  const q = S.questions[S.curQ]; if (!q) return;
+  IV.synth.cancel(); ariaSpeak('Of course. '+q.q, null);
+}
+
+// ══════════════════════════════════════════
+// INTERVIEW FLOW
+// ══════════════════════════════════════════
+function setStep(n, state) {
+  const el = document.getElementById('ps'+n); if (!el) return;
+  el.className = 'pstep ' + state;
+  el.querySelector('.pstep-icon').textContent = state==='done'?'✅':state==='active'?'⚙️':'⏳';
+}
+
+async function startInterview() {
+  initVoice();
+  const btn = document.getElementById('startBtn');
+  btn.disabled = true; btn.textContent = '🤖 Generating your interview…';
+  showScreen('screenLoading');
+
+  const qCount = parseInt(document.getElementById('cfgQCount').value)||10;
+  const diff   = document.getElementById('cfgDiff').value||'mixed';
+  const p      = S.profile;
+  const role   = p.target_role || 'Software Engineer';
+  const name   = p.first_name  || 'there';
+
+  setStep(1,'active'); await sleep(400); setStep(1,'done');
+  setStep(2,'active'); await sleep(300); setStep(2,'done');
+  setStep(3,'active');
+
+  const nTech = Math.max(1,Math.floor(qCount*.3));
+  const nBeh  = Math.max(1,Math.floor(qCount*.3));
+  const nSit  = Math.max(1,Math.floor(qCount*.15));
+  const diffInstr = diff==='easy'?'All Easy.':diff==='medium'?'All Medium.':diff==='hard'?'All Hard.':'Mix of Easy/Medium/Hard.';
+
+  const prompt = `You are a senior HR director writing a real office job interview script for role: "${role}".
+Candidate: ${name}. ATS: ${p.ats_score||60}%.
+
+Write EXACTLY ${qCount} interview questions spoken naturally by a real HR person face to face.
+Q1: "Tell me a little about yourself." [Intro, Easy]
+Q2: "Walk me through your experience relevant to ${role}." [Intro, Easy]
+Q3 to ${2+nTech}: ${nTech} technical questions specific to ${role} [Technical, Medium/Hard]
+Q${3+nTech} to ${2+nTech+nBeh}: ${nBeh} behavioural "Tell me about a time…" [Behavioural, Medium]
+Q${3+nTech+nBeh} to ${2+nTech+nBeh+nSit}: ${nSit} situational workplace scenarios [Situational, Hard]
+Second to last: "Where do you see yourself in the next few years?" [Career, Easy]
+Last: "Do you have any questions for me?" [Closing, Easy]
+${diffInstr}
+Natural, warm, conversational tone — exactly how a real HR person speaks.
+Include a short coaching tip per question.
+Respond ONLY with valid JSON: {"questions":[{"q":"text","type":"Intro","difficulty":"Easy","tip":"tip"}]}`;
+
+  try {
+    const res = await fetch(GROQ_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_KEY},
+      body:JSON.stringify({ model:GROQ_BIG, max_tokens:2200,
+        messages:[{role:'user',content:prompt}] })
+    });
+    const d = await res.json();
+    const raw = (d.choices?.[0]?.message?.content||'').replace(/```json|```/g,'').trim();
+    const si=raw.indexOf('{'), ei=raw.lastIndexOf('}');
+    const parsed = JSON.parse(raw.slice(si,ei+1));
+    S.questions = parsed.questions.slice(0,qCount);
+    if (S.questions.length<3) throw new Error('too few');
+  } catch(e) {
+    S.questions = fallbackQuestions(role, name);
+  }
+
+  setStep(3,'done'); setStep(4,'active');
+  S.answers = []; S.curQ = 0;
+  document.getElementById('qTotal').textContent = S.questions.length;
+  buildDots(S.questions.length);
+  await sleep(400); setStep(4,'done'); await sleep(300);
+
+  showScreen('screenInterview');
+
+  // ARIA greeting
+  const greeting = `Hi ${name}, I'm ARIA, Senior HR Director. I've had a look at your profile — great to meet you. I'll be asking you ${S.questions.length} questions today. Just talk to me naturally, like a normal conversation. Okay? Let's begin.`;
+  document.getElementById('qText').textContent = greeting;
+  setStatus('speaking','ARIA is speaking…'); setRing('blue');
+  document.getElementById('qBadges').innerHTML = '';
+  document.getElementById('qTip').style.display = 'none';
+  document.getElementById('nextBtn').textContent = 'Start →';
+  document.getElementById('qNum').textContent = '—';
+  document.getElementById('timerText').textContent = '—';
+
+  ariaSpeak(greeting, () => setTimeout(() => loadQ(0), 600));
+}
+
+function fallbackQuestions(role, name) {
+  return [
+    {q:'Tell me a little about yourself.',type:'Intro',difficulty:'Easy',tip:'Keep it professional: background, key experience, motivation.'},
+    {q:`Walk me through your most relevant experience for this ${role} role.`,type:'Intro',difficulty:'Easy',tip:'Highlight 2-3 achievements tied to this role.'},
+    {q:'Describe a technically challenging problem you solved. How did you approach it?',type:'Technical',difficulty:'Hard',tip:'Explain trade-offs and why you chose your approach.'},
+    {q:`What are the tools and technologies you use most in your ${role} work?`,type:'Technical',difficulty:'Medium',tip:'Be specific — name the tools and how you used them.'},
+    {q:'Tell me about a time you had a conflict with a colleague. How did you handle it?',type:'Behavioural',difficulty:'Medium',tip:'Use STAR — show empathy and a constructive resolution.'},
+    {q:'Describe a situation where you had to deliver under a very tight deadline.',type:'Behavioural',difficulty:'Medium',tip:'Show how you prioritised, communicated, and delivered.'},
+    {q:'Tell me about a time you failed at something important. What did you learn?',type:'Behavioural',difficulty:'Medium',tip:'Interviewers value self-awareness — be honest.'},
+    {q:"You've just discovered a critical bug in production at 11 PM. What do you do?",type:'Situational',difficulty:'Hard',tip:'Cover immediate action, escalation, fix, post-mortem.'},
+    {q:"Where do you see yourself in the next few years?",type:'Career',difficulty:'Easy',tip:"Show ambition aligned with the company's direction."},
+    {q:`Do you have any questions for me about the ${role} role or our company?`,type:'Closing',difficulty:'Easy',tip:'Always have 1-2 thoughtful questions — shows genuine interest.'},
+  ];
+}
+
+function loadQ(idx) {
+  const q = S.questions[idx]; if (!q) return;
+  S.curQ = idx;
+  if (IV.isRecording) stopMic();
+  IV.synth?.cancel(); S.finalText = '';
+
+  // Dots
+  for (let i=0; i<S.questions.length; i++) {
+    if (i<idx) setDot(i, S.answers[i]&&S.answers[i]!=='[Skipped]'?'answered':'skipped');
+    else if (i===idx) setDot(i,'active');
+  }
+  document.getElementById('qNum').textContent = idx+1;
+  document.getElementById('progFill').style.width = ((idx/S.questions.length)*100)+'%';
+
+  // Badges
+  const tC = {Technical:'rgba(0,212,255,.1)',Behavioural:'rgba(34,197,94,.1)',Situational:'rgba(255,107,43,.1)',Intro:'rgba(124,58,237,.1)',Career:'rgba(234,179,8,.1)',Closing:'rgba(34,197,94,.08)'};
+  const tT = {Technical:'#00d4ff',Behavioural:'#22c55e',Situational:'#ff6b2b',Intro:'#a78bfa',Career:'#eab308',Closing:'#86efac'};
+  const dC = {Easy:'#86efac',Medium:'#a78bfa',Hard:'#f87171'};
+  const tc = tC[q.type]||tC.Technical, tt = tT[q.type]||'#00d4ff';
+  document.getElementById('qBadges').innerHTML =
+    `<span class="qbadge" style="background:${tc};color:${tt};border:1px solid ${tt}33">${q.type}</span>
+     <span class="qbadge" style="background:rgba(255,255,255,.05);color:${dC[q.difficulty]||'#a78bfa'};border:1px solid rgba(255,255,255,.08)">${q.difficulty}</span>`;
+
+  document.getElementById('qText').textContent = q.q;
+  const tipEl = document.getElementById('qTip');
+  if (q.tip) { tipEl.innerHTML=`💡 <strong>Tip:</strong> ${q.tip}`; tipEl.style.display='block'; } else tipEl.style.display='none';
+
+  // Clear answer
+  const ansEl = document.getElementById('ansBox');
+  ansEl.textContent=''; ansEl.setAttribute('data-placeholder','Your spoken answer appears here… you can also type directly.');
+  document.getElementById('wordCount').textContent='0 words';
+  document.getElementById('ansHint').textContent='';
+  setMicUI(false);
+  document.getElementById('nextBtn').textContent = idx+1<S.questions.length ? 'Submit Answer →' : 'Finish Interview →';
+  document.getElementById('nextBtn').disabled = false;
+
+  // ARIA speaks — with AI transition from previous answer
+  setStatus('speaking','ARIA is speaking…'); setRing('blue');
+  if (idx===0) {
+    ariaSpeak(q.q, () => { setRing('green'); startTimer(180); });
+  } else {
+    ariaTransition(S.questions[idx-1]?.q||'', S.answers[idx-1]||'', q.q, () => {
+      setRing('green'); startTimer(180);
+    });
+  }
+}
+
+async function ariaTransition(prevQ, prevAns, nextQ, onEnd) {
+  const ansSnip = (prevAns||'[no answer]').slice(0,250);
+  const prompt = `You are ARIA, a warm and professional Senior HR Director conducting a real office interview. You speak naturally like a human, not like a robot.
+
+The candidate just answered your question.
+Previous question: "${prevQ}"
+Their answer: "${ansSnip}"
+Your next question to ask: "${nextQ}"
+
+Write ONLY what you would naturally SAY out loud — exactly like a real HR in an office interview would respond after hearing that answer.
+
+Rules:
+- Start with a genuine human acknowledgement of what they said (1 sentence). Examples: "Oh okay, that's interesting." / "I see, so you've worked with..." / "Right, that makes sense." / "Ah okay, I appreciate you sharing that." / "That's a fair point." / "Okay, noted."
+- Then naturally transition to the next question (1-2 sentences max)
+- Sound warm, conversational, human — NOT robotic or formal
+- NEVER start with: Perfect, Great, Excellent, Wonderful, Fantastic, Amazing, Awesome, Brilliant, That's a great answer
+- If they said they don't know: "That's completely fine, not everyone has worked with that. Let me ask you something else —"
+- Total response: 2-3 sentences MAX
+- Reply with ONLY the spoken words, nothing else`;
+  try {
+    const res = await Promise.race([
+      fetch(GROQ_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_KEY},
+        body:JSON.stringify({model:GROQ_FAST,max_tokens:80,temperature:0.5,messages:[{role:'user',content:prompt}]})}),
+      new Promise((_,r)=>setTimeout(()=>r(),4000))
+    ]);
+    const d = await res.json();
+    const txt = (d.choices?.[0]?.message?.content||'').trim();
+    if (txt && txt.length>5) { ariaSpeak(txt, onEnd); return; }
+  } catch(e) {}
+  ariaSpeak(nextQ, onEnd);
+}
+
+// ── TIMER ──
+function startTimer(secs) {
+  clearInterval(IV.timerInterval);
+  const pill = document.getElementById('timerPill');
+  const txt  = document.getElementById('timerText');
+  const update = () => {
+    const m=Math.floor(secs/60), s2=String(secs%60).padStart(2,'0');
+    if (txt) txt.textContent=m+':'+s2;
+    if (pill) { pill.className='timer-pill'+(secs<=30?' danger':secs<=60?' warn':''); }
+  };
+  update();
+  IV.timerInterval = setInterval(() => {
+    if (IV.isSpeaking) return;
+    secs--; update();
+    if (secs<=0) { clearInterval(IV.timerInterval); toast("⏰ Time's up — moving on…"); nextQ(); }
+  }, 1000);
+}
+
+// ── Q DOTS ──
+function buildDots(n) {
+  const el = document.getElementById('qDotsStrip'); if (!el) return;
+  el.innerHTML = Array.from({length:n},(_,i)=>`<div class="qdot" id="qdot${i}">${i+1}</div>`).join('');
+}
+function setDot(i,state) {
+  const d=document.getElementById('qdot'+i); if(!d) return;
+  d.className='qdot'+(state?' '+state:'');
+}
+
+// ── NEXT / SKIP ──
+async function nextQ() {
+  clearInterval(IV.timerInterval);
+  if (IV.isRecording) stopMic();
+  IV.synth?.cancel();
+  const ansEl = document.getElementById('ansBox');
+  const ans = (S.finalText||ansEl?.textContent||'').trim();
+  S.answers.push(ans||'[No answer provided]');
+  setDot(S.curQ, ans&&ans!=='[No answer provided]'?'answered':'skipped');
+  document.getElementById('nextBtn').disabled = true;
+
+  const isLast = S.curQ+1 >= S.questions.length;
+  if (isLast) {
+    // AI closing
+    const totalAns = S.answers.filter(a=>a&&a!=='[Skipped]'&&a!=='[No answer provided]').length;
+    let closing = `Thanks so much ${S.profile.first_name||''}, it was really nice speaking with you today. I'll review everything and we'll be in touch soon.`;
+    try {
+      const res = await Promise.race([
+        fetch(GROQ_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_KEY},
+          body:JSON.stringify({model:GROQ_FAST,max_tokens:60,temperature:0.5,messages:[{role:'user',content:
+          `You are ARIA, senior HR director. Interview just finished with ${S.profile.first_name||'the candidate'} for ${S.profile.target_role||'the role'}.
+They answered ${totalAns} of ${S.questions.length} questions. Write a warm 2-sentence closing. No "Perfect/Excellent". Sound like a real person.
+Reply with spoken closing ONLY.`}]})}),
+        new Promise((_,r)=>setTimeout(()=>r(),3000))
+      ]);
+      const d=await res.json();
+      const t=(d.choices?.[0]?.message?.content||'').trim();
+      if (t&&t.length>10) closing=t;
+    } catch(e) {}
+    setStatus('speaking','ARIA is wrapping up…'); setRing('blue');
+    ariaSpeak(closing, () => submitInterview());
+  } else {
+    S.curQ++;
+    loadQ(S.curQ);
+  }
+}
+
+function skipQ() {
+  clearInterval(IV.timerInterval);
+  if (IV.isRecording) stopMic();
+  IV.synth?.cancel();
+  S.answers.push('[Skipped]');
+  setDot(S.curQ,'skipped');
+  if (S.curQ+1 < S.questions.length) { S.curQ++; loadQ(S.curQ); }
+  else nextQ();
+}
+
+// ── SUBMIT & EVALUATE ──
+async function submitInterview() {
+  clearInterval(IV.timerInterval);
+  if (IV.isRecording) stopMic();
+  IV.synth?.cancel(); setRing('none');
+  showScreen('screenEval');
+
+  const role = S.profile.target_role||'Software Engineer';
+  const name = ((S.profile.first_name||'')+' '+(S.profile.last_name||'')).trim();
+  const transcript = S.questions.map((q,i)=>`Q${i+1} [${q.type}·${q.difficulty}]: ${q.q}\nCandidate: ${S.answers[i]||'[Skipped]'}`).join('\n\n');
+
+  let prog=0; let si=0;
+  const statuses=['Reading your transcript…','Evaluating communication…','Scoring technical depth…','Assessing professionalism…','Generating HR report…'];
+  const barInt = setInterval(()=>{
+    prog=Math.min(prog+1.2,90);
+    const bar=document.getElementById('evalBarFill'); if(bar) bar.style.width=prog+'%';
+    if (prog>si*18&&si<statuses.length) {
+      const st=document.getElementById('evalStatus'); if(st) st.textContent=statuses[si++];
+    }
+  },130);
+
+  const evalPrompt = `You are a strict but fair senior HR director evaluating candidate "${name}" for "${role}".
+
+Full interview transcript:
+${transcript}
+
+Score each answer on: relevance, clarity, specific examples, technical accuracy, professionalism.
+Skipped/empty = max 10.
+
+Respond ONLY with valid JSON:
+{
+  "overall_score":<0-100>,
+  "communication_score":<0-100>,
+  "technical_score":<0-100>,
+  "professionalism_score":<0-100>,
+  "feedback":[{"q_num":1,"score":<0-100>,"verdict":"Good","comment":"1-2 sentence feedback"}],
+  "strengths":"2-3 sentences",
+  "improvements":"2-3 sentences",
+  "hire_recommendation":"Strong Yes/Yes/Maybe/No",
+  "hr_summary":"3-4 sentence executive summary for HR"
+}
+verdict must be: Good, Average, or Weak`;
+
+  let evalResult = null;
+  try {
+    const res = await fetch(GROQ_URL,{method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_KEY},
+      body:JSON.stringify({model:GROQ_BIG,max_tokens:1500,messages:[{role:'user',content:evalPrompt}]})});
+    const d = await res.json();
+    const raw=(d.choices?.[0]?.message?.content||'').replace(/```json|```/g,'').trim();
+    const si2=raw.indexOf('{'),ei=raw.lastIndexOf('}');
+    evalResult = JSON.parse(raw.slice(si2,ei+1));
+  } catch(e) {
+    const sc = S.answers.map(a=>{
+      if(!a||a==='[Skipped]'||a==='[No answer provided]') return 10;
+      const w=a.split(/\s+/).length,ex=/example|time|built|led|project|achieved/i.test(a),n=/\d/.test(a);
+      return Math.min(92,Math.round(20+Math.min(45,w*.6)+(ex?15:0)+(n?10:0)));
+    });
+    const ov=Math.round(sc.reduce((a,b)=>a+b,0)/sc.length);
+    evalResult={overall_score:ov,communication_score:ov,technical_score:ov,professionalism_score:ov,
+      feedback:sc.map((s,i)=>({q_num:i+1,score:s,verdict:s>=70?'Good':s>=45?'Average':'Weak',comment:s>=70?'Solid answer.':s>=45?'Needs more specifics.':'Too brief or skipped.'})),
+      strengths:'Candidate completed the interview.',improvements:'Add more specific examples with measurable results.',
+      hire_recommendation:ov>=70?'Yes':ov>=50?'Maybe':'No',hr_summary:`${name} completed a ${S.questions.length}-question live interview for ${role}. Score: ${ov}%.`};
+  }
+
+  clearInterval(barInt);
+  const bar=document.getElementById('evalBarFill'); if(bar) bar.style.width='100%';
+  await sleep(700);
+
+  // Save to Supabase — only interview_score (column guaranteed to exist)
+  try {
+    await sb.from('profiles').update({
+      interview_score: evalResult.overall_score
+    }).eq('id', S.user.id);
+  } catch(e) { console.warn('DB save:', e); }
+
+  // Save full eval to localStorage (no Supabase schema changes needed)
+  try {
+    localStorage.setItem('sp_eval_' + S.user.id, JSON.stringify({
+      score: evalResult.overall_score,
+      communication: evalResult.communication_score,
+      technical: evalResult.technical_score,
+      professionalism: evalResult.professionalism_score,
+      recommendation: evalResult.hire_recommendation,
+      hr_summary: evalResult.hr_summary,
+      strengths: evalResult.strengths,
+      improvements: evalResult.improvements,
+      feedback: evalResult.feedback,
+      completed_at: new Date().toISOString(),
+      role, q_count: S.questions.length,
+      transcript: transcript.slice(0, 6000),
+    }));
+  } catch(e) {}
+  S.profile.interview_score = evalResult.overall_score;
+
+  showScreen('screenResults');
+  renderResults(evalResult);
+  toast('🏆 Interview complete! Score: '+evalResult.overall_score+'% — sent to HR', 7000);
+}
+
+function renderStoredResults() {
+  // Show stored score if interview already done
+  const score = S.profile.interview_score;
+  let ev = null;
+  // Read eval from localStorage (saved after interview)
+  try { ev = JSON.parse(localStorage.getItem('sp_eval_' + S.user.id) || 'null'); } catch(e){}
+  const fakeEval = {
+    overall_score:score, communication_score:ev?.communication||score,
+    technical_score:ev?.technical||score, professionalism_score:ev?.professionalism||score,
+    hire_recommendation:ev?.recommendation||(score>=70?'Yes':'Maybe'),
+    hr_summary:ev?.hr_summary||'', strengths:ev?.strengths||'', improvements:ev?.improvements||'',
+    feedback:[]
+  };
+  renderResults(fakeEval);
+}
+
+function renderResults(r) {
+  const score = r.overall_score;
+  const recMap = {
+    'Strong Yes':{color:'#22c55e',bg:'rgba(34,197,94,.12)',icon:'🌟',border:'rgba(34,197,94,.25)'},
+    'Yes':       {color:'#22c55e',bg:'rgba(34,197,94,.09)',icon:'✅',border:'rgba(34,197,94,.2)'},
+    'Maybe':     {color:'#eab308',bg:'rgba(234,179,8,.1)', icon:'⚖️',border:'rgba(234,179,8,.2)'},
+    'No':        {color:'#f87171',bg:'rgba(248,113,113,.1)',icon:'❌',border:'rgba(248,113,113,.2)'},
+  };
+  const rm = recMap[r.hire_recommendation]||recMap['Maybe'];
+  const circ = 2*Math.PI*60;
+  const offset = circ-(score/100)*circ;
+  const arcColor = score>=75?'#22c55e':score>=50?'#eab308':'#f87171';
+
+  document.getElementById('resultsContent').innerHTML = `
+    <div style="text-align:center;margin-bottom:28px">
+      <div class="score-ring-big">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <circle cx="70" cy="70" r="60" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="10"/>
+          <circle cx="70" cy="70" r="60" fill="none" stroke="${arcColor}" stroke-width="10"
+            stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${offset}"
+            style="transition:stroke-dashoffset 1.2s ease"/>
+        </svg>
+        <div class="inner">
+          <div class="score-big">${score}%</div>
+          <div class="score-sub">Overall</div>
+        </div>
+      </div>
+      <div class="rec-badge" style="background:${rm.bg};border:1px solid ${rm.border};color:${rm.color};margin:0 auto">
+        ${rm.icon} HR Recommendation: ${r.hire_recommendation}
+      </div>
+    </div>
+
+    <div class="sub-scores">
+      ${[['🗣️','Communication',r.communication_score||score],['🔧','Technical',r.technical_score||score],['🤝','Professionalism',r.professionalism_score||score]].map(([ic,lb,val])=>`
+        <div class="ss-card">
+          <div class="ss-icon">${ic}</div>
+          <div class="ss-val" style="color:${val>=70?'#22c55e':val>=50?'#eab308':'#f87171'}">${val}%</div>
+          <div class="ss-lbl">${lb}</div>
+        </div>`).join('')}
+    </div>
+
+    ${r.hr_summary?`<div class="hr-summary-box">
+      <div class="label">📤 HR Report Summary — Sent to HR</div>
+      <div style="font-size:13.5px;color:var(--muted2);line-height:1.75">${r.hr_summary}</div>
+    </div>`:''}
+
+    <div class="str-imp">
+      <div class="si-card" style="border-color:rgba(0,212,255,.15)">
+        <div class="si-label" style="color:var(--muted)">💪 Strengths</div>
+        <div style="font-size:13px;color:var(--muted2);line-height:1.7">${r.strengths||'—'}</div>
+      </div>
+      <div class="si-card" style="border-color:rgba(255,107,43,.15)">
+        <div class="si-label" style="color:var(--muted)">🎯 Improve</div>
+        <div style="font-size:13px;color:var(--muted2);line-height:1.7">${r.improvements||'—'}</div>
+      </div>
+    </div>
+
+    ${r.feedback&&r.feedback.length?`<div class="qa-list">
+      <div style="font-size:14px;font-weight:700;color:#fff;margin-bottom:16px">📋 Question Breakdown</div>
+      ${r.feedback.map((fb,i)=>{
+        const q=S.questions[i]||{}; const ans=S.answers[i]||'';
+        const vc=fb.verdict==='Good'?'#22c55e':fb.verdict==='Average'?'#eab308':'#f87171';
+        const vbg=fb.verdict==='Good'?'rgba(34,197,94,.1)':fb.verdict==='Average'?'rgba(234,179,8,.1)':'rgba(248,113,113,.1)';
+        return `<div class="qa-item">
+          <div class="qa-q"><span class="qa-qnum">Q${fb.q_num}</span>${(q.q||'').slice(0,90)}${(q.q||'').length>90?'…':''}</div>
+          <div class="qa-score-row">
+            <span style="color:${vc};font-weight:800;font-family:var(--mono)">${fb.score}%</span>
+            <div class="qa-bar-bg"><div class="qa-bar-fill" style="width:${fb.score}%;background:${vc}"></div></div>
+            <span class="verdict-chip" style="background:${vbg};color:${vc}">${fb.verdict}</span>
+          </div>
+          <div class="qa-comment">${fb.comment}</div>
+          ${ans&&ans!=='[Skipped]'&&ans!=='[No answer provided]'?`<div class="qa-answer">"${ans.slice(0,130)}${ans.length>130?'…':''}"</div>`:''}
+        </div>`;
+      }).join('')}
+    </div>`:''}
+
+    <div class="action-btns">
+      <a href="user.html" class="ab ab-primary">🏠 Back to Dashboard</a>
+      <a href="user.html" class="ab ab-secondary" onclick="localStorage.setItem('sp_open_report','1')">📊 Full Report</a>
+    </div>`;
+}
+
+// ── HELPERS ──
+function sleep(ms) { return new Promise(r=>setTimeout(r,ms)); }
+function toast(msg, dur=4000) {
+  const w=document.getElementById('toastWrap'); if(!w) return;
+  const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
+  w.appendChild(t); setTimeout(()=>t.remove(),dur);
+}
+</script>
+<script src="chatbot.js"></script>
+</body>
+</html>

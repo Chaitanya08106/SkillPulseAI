@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mock Interview | SkillPulse</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ff: 'Sora', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+  --ink: #06060f; --surface: #09091a; --card: #0e0e1f; --card2: #13132a;
+  --border: rgba(255,255,255,.07); --border2: rgba(255,255,255,.13);
+  --pulse: #00d4ff; --glow: #7c3aed; --fire: #ff6b2b; --green: #22c55e; --yellow: #eab308;
+  --text: #e2e8f0; --muted: #64748b; --muted2: #94a3b8; --r: 14px;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: var(--ff); background: var(--ink); color: var(--text); min-height: 100vh; -webkit-font-smoothing: antialiased; }
+
+/* ── HEADER ── */
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 16px 28px; background: rgba(9,9,26,.9); border-bottom: 1px solid var(--border); backdrop-filter: blur(12px); position: sticky; top: 0; z-index: 50; }
+.logo { font-size: 20px; font-weight: 800; color: #fff; text-decoration: none; display: flex; align-items: center; gap: 8px; }
+.logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--pulse); box-shadow: 0 0 10px var(--pulse); }
+.logo span { color: var(--pulse); }
+.mock-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 6px; background: rgba(255,107,43,.12); color: var(--fire); border: 1px solid rgba(255,107,43,.2); }
+.back-btn { padding: 7px 14px; background: rgba(255,255,255,.05); border: 1px solid var(--border); border-radius: 9px; color: var(--muted2); font-size: 13px; font-weight: 600; cursor: pointer; font-family: var(--ff); transition: all .2s; text-decoration: none; }
+.back-btn:hover { color: #fff; background: rgba(255,255,255,.09); }
+
+/* ── MAIN ── */
+.main { max-width: 740px; margin: 0 auto; padding: 32px 20px 60px; }
+
+/* ── SCREENS ── */
+.screen { display: none; }
+.screen.on { display: block; }
+
+/* ── CONFIG SCREEN ── */
+.hero { text-align: center; margin-bottom: 36px; }
+.hero-icon { font-size: 56px; margin-bottom: 16px; display: block; }
+.hero h1 { font-size: 32px; font-weight: 800; color: #fff; letter-spacing: -1px; margin-bottom: 10px; }
+.hero p { color: var(--muted2); font-size: 15px; max-width: 480px; margin: 0 auto; line-height: 1.7; }
+
+.practice-banner { display: flex; align-items: center; gap: 12px; padding: 14px 18px; background: rgba(34,197,94,.07); border: 1px solid rgba(34,197,94,.18); border-radius: var(--r); margin-bottom: 28px; font-size: 13px; color: #86efac; }
+.practice-banner strong { color: #fff; }
+
+.config-card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 28px; margin-bottom: 20px; }
+.config-card h3 { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+
+.role-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.role-chip { padding: 10px 14px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--card2); cursor: pointer; font-size: 13px; font-weight: 600; color: var(--muted2); transition: all .2s; text-align: center; }
+.role-chip:hover { border-color: rgba(0,212,255,.3); color: #fff; }
+.role-chip.sel { border-color: var(--pulse); background: rgba(0,212,255,.08); color: var(--pulse); }
+
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 12px; font-weight: 700; color: var(--muted2); margin-bottom: 7px; text-transform: uppercase; letter-spacing: .5px; }
+.field input, .field select, .field textarea { width: 100%; padding: 11px 14px; background: var(--card2); border: 1.5px solid var(--border); border-radius: var(--r); color: #fff; font-size: 14px; font-family: var(--ff); outline: none; transition: border-color .2s; -webkit-appearance: none; }
+.field input::placeholder, .field textarea::placeholder { color: var(--muted); }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--pulse); }
+.field select option { background: var(--card2); }
+
+.opt-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.start-btn { width: 100%; padding: 16px; background: linear-gradient(135deg, var(--pulse), #009fc2); color: #06060f; border: none; border-radius: var(--r); font-size: 16px; font-weight: 800; cursor: pointer; font-family: var(--ff); transition: all .3s; display: flex; align-items: center; justify-content: center; gap: 10px; }
+.start-btn:hover { box-shadow: 0 0 36px rgba(0,212,255,.4); transform: translateY(-1px); }
+.start-btn:disabled { opacity: .5; pointer-events: none; transform: none; }
+
+/* ── LOADING SCREEN ── */
+.loading-center { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 60vh; text-align: center; }
+.loader-ring { width: 72px; height: 72px; border: 3px solid rgba(0,212,255,.12); border-top-color: var(--pulse); border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 24px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.load-steps { margin-top: 28px; text-align: left; display: flex; flex-direction: column; gap: 10px; }
+.lstep { display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--muted); }
+.lstep.done { color: var(--green); }
+.lstep.active { color: #fff; }
+.lstep-ic { font-size: 16px; width: 20px; text-align: center; }
+
+/* ── INTERVIEW SCREEN ── */
+.prog-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.prog-label { font-size: 13px; color: var(--muted); }
+.prog-label strong { color: #fff; font-size: 16px; }
+.timer-wrap { display: flex; align-items: center; gap: 8px; }
+.timer-disp { font-family: var(--mono); font-size: 20px; font-weight: 700; color: var(--pulse); min-width: 52px; text-align: right; }
+.timer-bar { height: 4px; background: var(--border); border-radius: 3px; overflow: hidden; margin-bottom: 22px; }
+.timer-fg { height: 100%; background: var(--pulse); border-radius: 3px; transition: width .9s linear, background .3s; }
+
+.q-card { background: var(--card); border: 1.5px solid rgba(0,212,255,.12); border-radius: 18px; padding: 26px; margin-bottom: 18px; }
+.q-badges { display: flex; gap: 8px; margin-bottom: 14px; }
+.qbadge { font-size: 11px; font-weight: 700; padding: 4px 12px; border-radius: 20px; }
+.qb-tech { background: rgba(0,212,255,.1); color: var(--pulse); border: 1px solid rgba(0,212,255,.2); }
+.qb-beh { background: rgba(34,197,94,.1); color: var(--green); border: 1px solid rgba(34,197,94,.2); }
+.qb-sit { background: rgba(255,107,43,.1); color: var(--fire); border: 1px solid rgba(255,107,43,.2); }
+.qb-diff { background: rgba(124,58,237,.1); color: #a78bfa; border: 1px solid rgba(124,58,237,.2); }
+.qb-hard { background: rgba(248,113,113,.1); color: #f87171; border: 1px solid rgba(248,113,113,.2); }
+.q-text { font-size: 17px; font-weight: 600; color: #fff; line-height: 1.7; }
+
+.tip-box { background: rgba(124,58,237,.06); border: 1px solid rgba(124,58,237,.15); border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; font-size: 12px; color: #c4b5fd; }
+.tip-box strong { color: #e9d5ff; }
+
+.ans-box { width: 100%; min-height: 150px; padding: 14px; background: var(--card2); border: 1.5px solid var(--border); border-radius: var(--r); color: #fff; font-size: 14px; font-family: var(--ff); outline: none; resize: vertical; line-height: 1.7; transition: border-color .2s; }
+.ans-box:focus { border-color: var(--pulse); }
+.ans-box::placeholder { color: var(--muted); }
+.char-row { display: flex; justify-content: space-between; align-items: center; margin-top: 7px; font-size: 12px; color: var(--muted); min-height: 18px; }
+
+.action-row { display: flex; gap: 10px; margin-top: 14px; }
+.btn-primary { flex: 1; padding: 13px; background: linear-gradient(135deg, var(--pulse), #009fc2); color: #06060f; border: none; border-radius: var(--r); font-size: 15px; font-weight: 800; cursor: pointer; font-family: var(--ff); transition: all .2s; }
+.btn-primary:hover { box-shadow: 0 0 24px rgba(0,212,255,.35); }
+.btn-skip { padding: 13px 18px; background: rgba(255,255,255,.04); border: 1.5px solid var(--border); border-radius: var(--r); color: var(--muted2); font-size: 14px; font-weight: 600; cursor: pointer; font-family: var(--ff); transition: all .2s; }
+.btn-skip:hover { color: #fff; border-color: rgba(255,255,255,.2); }
+
+.q-nav { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+.q-dot { width: 34px; height: 34px; border-radius: 8px; border: 1.5px solid var(--border); background: var(--card2); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; color: var(--muted); cursor: pointer; transition: all .2s; }
+.q-dot.active { border-color: var(--pulse); color: var(--pulse); background: rgba(0,212,255,.08); }
+.q-dot.answered { border-color: rgba(34,197,94,.4); color: var(--green); background: rgba(34,197,94,.07); }
+.q-dot.skipped { border-color: rgba(255,107,43,.3); color: var(--fire); }
+
+/* ── EVAL SCREEN ── */
+.eval-center { display: flex; flex-direction: column; align-items: center; text-align: center; min-height: 60vh; justify-content: center; }
+.eval-icon { font-size: 64px; margin-bottom: 20px; animation: float 2s ease-in-out infinite; }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
+.eval-bar-wrap { width: 100%; max-width: 320px; height: 6px; background: var(--border); border-radius: 4px; overflow: hidden; margin: 20px auto 10px; }
+.eval-bar-fill { height: 100%; background: linear-gradient(90deg, var(--pulse), var(--glow)); border-radius: 4px; transition: width .4s ease; }
+
+/* ── RESULTS SCREEN ── */
+.score-ring-big { width: 140px; height: 140px; border-radius: 50%; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; position: relative; }
+.score-ring-big svg { position: absolute; top: 0; left: 0; transform: rotate(-90deg); }
+.score-ring-big .inner { text-align: center; z-index: 1; }
+.score-big { font-size: 38px; font-weight: 800; color: #fff; font-family: var(--mono); line-height: 1; }
+.score-sub { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+.rec-badge { display: inline-flex; align-items: center; gap: 6px; padding: 6px 16px; border-radius: 8px; font-size: 14px; font-weight: 700; margin-bottom: 24px; }
+
+.res-card { background: var(--card); border: 1px solid var(--border); border-radius: 18px; padding: 24px; margin-bottom: 14px; }
+.res-card h3 { font-size: 15px; font-weight: 700; color: #fff; margin-bottom: 16px; }
+.qa-item { border-bottom: 1px solid var(--border); padding: 16px 0; }
+.qa-item:last-child { border-bottom: none; padding-bottom: 0; }
+.qa-q { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 6px; display: flex; align-items: flex-start; gap: 8px; }
+.qa-q-num { color: var(--pulse); font-family: var(--mono); flex-shrink: 0; }
+.qa-score-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.qa-score-bar { flex: 1; height: 5px; background: var(--border); border-radius: 3px; overflow: hidden; margin: 0 12px; }
+.qa-score-fill { height: 100%; border-radius: 3px; }
+.qa-verdict { font-size: 12px; font-weight: 700; padding: 2px 9px; border-radius: 5px; }
+.v-good { background: rgba(34,197,94,.12); color: var(--green); }
+.v-avg { background: rgba(234,179,8,.12); color: var(--yellow); }
+.v-weak { background: rgba(248,113,113,.1); color: #f87171; }
+.qa-comment { font-size: 13px; color: var(--muted2); line-height: 1.7; }
+.qa-answer-preview { margin-top: 8px; font-size: 12px; color: var(--muted); font-style: italic; background: rgba(255,255,255,.03); padding: 8px 12px; border-radius: 8px; border-left: 2px solid var(--border); }
+
+.str-imp { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.str-box { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+.str-box h4 { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+.str-box p { font-size: 13px; color: var(--muted2); line-height: 1.7; }
+
+.retry-row { display: flex; gap: 12px; margin-top: 8px; }
+.btn-retry { flex: 1; padding: 14px; background: linear-gradient(135deg, var(--pulse), #009fc2); color: #06060f; border: none; border-radius: var(--r); font-size: 15px; font-weight: 800; cursor: pointer; font-family: var(--ff); transition: all .2s; }
+.btn-retry:hover { box-shadow: 0 0 28px rgba(0,212,255,.4); }
+.btn-dash { flex: 1; padding: 14px; background: var(--card); border: 1.5px solid var(--border2); border-radius: var(--r); color: var(--text); font-size: 14px; font-weight: 700; cursor: pointer; font-family: var(--ff); transition: all .2s; text-decoration: none; display: flex; align-items: center; justify-content: center; }
+.btn-dash:hover { border-color: rgba(255,255,255,.3); }
+
+/* ── TOAST ── */
+.toast { position: fixed; bottom: 24px; right: 24px; background: var(--card2); border: 1px solid var(--border); border-radius: 12px; padding: 13px 20px; font-size: 14px; color: #fff; z-index: 999; box-shadow: 0 8px 40px rgba(0,0,0,.4); transform: translateY(80px); opacity: 0; transition: all .35s; pointer-events: none; }
+.toast.show { transform: translateY(0); opacity: 1; }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="user.html" class="logo"><div class="logo-dot"></div>Skill<span>Pulse</span></a>
+  <span class="mock-badge">🎯 Practice Mode</span>
+  <a href="user.html" class="back-btn">← Back to Dashboard</a>
+</div>
+
+<div class="main">
+
+  <!-- ══ CONFIG SCREEN ══ -->
+  <div class="screen on" id="screenConfig">
+    <div class="hero">
+      <span class="hero-icon">🎤</span>
+      <h1>Mock Interview</h1>
+      <p>Practice with AI-generated questions tailored to your role. No pressure — this is for practice only.</p>
+    </div>
+
+    <div class="practice-banner">
+      <span style="font-size:20px">✅</span>
+      <div><strong>Practice Mode — Open to Everyone.</strong> No HR approval needed. Switch tabs freely. Results are only shown to you — not saved to your profile.</div>
+    </div>
+
+    <div class="config-card">
+      <h3>🎯 Select Your Target Role</h3>
+      <div class="role-grid" id="roleGrid">
+        <div class="role-chip sel" data-role="Software Engineer">💻 Software Engineer</div>
+        <div class="role-chip" data-role="Data Scientist">📊 Data Scientist</div>
+        <div class="role-chip" data-role="Full Stack Developer">🌐 Full Stack Dev</div>
+        <div class="role-chip" data-role="Machine Learning Engineer">🤖 ML Engineer</div>
+        <div class="role-chip" data-role="DevOps Engineer">⚙️ DevOps Engineer</div>
+        <div class="role-chip" data-role="Frontend Developer">🎨 Frontend Dev</div>
+        <div class="role-chip" data-role="Backend Developer">🔧 Backend Dev</div>
+        <div class="role-chip" data-role="Product Manager">📋 Product Manager</div>
+        <div class="role-chip" data-role="Data Analyst">📈 Data Analyst</div>
+        <div class="role-chip" data-role="Cloud Architect">☁️ Cloud Architect</div>
+      </div>
+      <div class="field" style="margin-top:12px;margin-bottom:0">
+        <label>Or type a custom role</label>
+        <input type="text" id="customRole" placeholder="e.g. iOS Developer, Security Engineer…">
+      </div>
+    </div>
+
+    <div class="config-card">
+      <h3>⚙️ Interview Settings</h3>
+      <div class="opt-grid">
+        <div class="field">
+          <label>Number of Questions</label>
+          <select id="qCountSel">
+            <option value="5" selected>5 Questions</option>
+            <option value="8">8 Questions</option>
+            <option value="10">10 Questions</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Time Per Question</label>
+          <select id="timeSel">
+            <option value="90">90 seconds</option>
+            <option value="120" selected>2 minutes</option>
+            <option value="180">3 minutes</option>
+            <option value="0">No limit</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Difficulty Level</label>
+          <select id="diffSel">
+            <option value="mixed" selected>Mixed (Recommended)</option>
+            <option value="easy">Easy — Entry Level</option>
+            <option value="medium">Medium — Mid Level</option>
+            <option value="hard">Hard — Senior Level</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Focus Area</label>
+          <select id="focusSel">
+            <option value="mixed" selected>All Types</option>
+            <option value="technical">Technical Only</option>
+            <option value="behavioural">Behavioural Only</option>
+            <option value="situational">Situational Only</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label>Your key skills (optional — improves question quality)</label>
+        <input type="text" id="skillsInput" placeholder="e.g. Python, React, Docker, PostgreSQL…">
+      </div>
+    </div>
+
+    <button class="start-btn" id="startBtn" onclick="startMock()">
+      <span>🤖</span> Generate Questions & Begin
+    </button>
+  </div>
+
+  <!-- ══ LOADING SCREEN ══ -->
+  <div class="screen" id="screenLoading">
+    <div class="loading-center">
+      <div class="loader-ring"></div>
+      <h2 style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-.4px">Generating your interview…</h2>
+      <p style="color:var(--muted);font-size:14px;margin-top:8px" id="loadSub">AI is crafting personalised questions</p>
+      <div class="load-steps" id="loadSteps">
+        <div class="lstep" id="ls1"><span class="lstep-ic">⏳</span> Connecting to AI engine</div>
+        <div class="lstep" id="ls2"><span class="lstep-ic">⏳</span> Analysing role & difficulty</div>
+        <div class="lstep" id="ls3"><span class="lstep-ic">⏳</span> Generating personalised questions</div>
+        <div class="lstep" id="ls4"><span class="lstep-ic">⏳</span> Preparing interview room</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ INTERVIEW SCREEN ══ -->
+  <div class="screen" id="screenInterview">
+    <!-- Question nav dots -->
+    <div class="q-nav" id="qNav"></div>
+
+    <!-- Progress + timer -->
+    <div class="prog-row">
+      <div class="prog-label">Question <strong id="qNum">1</strong> <span style="color:var(--muted)">of</span> <strong id="qTotal">5</strong></div>
+      <div class="timer-wrap">
+        <span style="font-size:13px;color:var(--muted)">⏱</span>
+        <div class="timer-disp" id="timerDisp">2:00</div>
+      </div>
+    </div>
+    <div class="timer-bar"><div class="timer-fg" id="timerFg" style="width:100%"></div></div>
+
+    <!-- Question card -->
+    <div class="q-card">
+      <div class="q-badges">
+        <span class="qbadge qb-tech" id="qTypeBadge">Technical</span>
+        <span class="qbadge qb-diff" id="qDiffBadge">Medium</span>
+      </div>
+      <div class="q-text" id="qText">Loading question…</div>
+    </div>
+
+    <!-- STAR tip -->
+    <div class="tip-box" id="starTip">
+      💡 <strong>Tip:</strong> Use the <strong>STAR method</strong> — Situation, Task, Action, Result. Be specific with numbers and examples.
+    </div>
+
+    <!-- Answer -->
+    <div style="position:relative">
+      <textarea class="ans-box" id="ansBox" placeholder="Type your detailed answer here… Be specific, use real examples, mention metrics where possible."></textarea>
+    </div>
+    <div class="char-row">
+      <span id="charHint" style="color:var(--muted)"></span>
+      <span id="charCount">0 chars</span>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-primary" id="nextBtn" onclick="submitAnswer()">Submit Answer →</button>
+      <button class="btn-skip" onclick="skipAnswer()">Skip ⏩</button>
+    </div>
+  </div>
+
+  <!-- ══ EVAL SCREEN ══ -->
+  <div class="screen" id="screenEval">
+    <div class="eval-center">
+      <div class="eval-icon">🤖</div>
+      <h2 style="font-size:24px;font-weight:800;color:#fff;margin-bottom:8px">Evaluating your answers…</h2>
+      <p style="color:var(--muted);font-size:14px" id="evalSub">Analysing depth, clarity and relevance</p>
+      <div class="eval-bar-wrap"><div class="eval-bar-fill" id="evalBar" style="width:0%"></div></div>
+      <div id="evalStatus" style="font-size:12px;color:var(--muted);margin-top:8px">Preparing…</div>
+    </div>
+  </div>
+
+  <!-- ══ RESULTS SCREEN ══ -->
+  <div class="screen" id="screenResults">
+    <!-- Score ring -->
+    <div style="text-align:center;margin-bottom:28px">
+      <div class="score-ring-big" id="scoreRing">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <circle cx="70" cy="70" r="60" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="10"/>
+          <circle cx="70" cy="70" r="60" fill="none" id="scoreArc" stroke="#00d4ff" stroke-width="10" stroke-linecap="round" stroke-dasharray="377" stroke-dashoffset="377"/>
+        </svg>
+        <div class="inner">
+          <div class="score-big" id="finalScoreNum">0%</div>
+          <div class="score-sub">Overall</div>
+        </div>
+      </div>
+      <div id="recBadge" class="rec-badge" style="margin:0 auto"></div>
+      <p style="color:var(--muted2);font-size:14px;margin-top:8px" id="practiceNote">Practice mode — results not saved to your profile</p>
+    </div>
+
+    <!-- Per-question breakdown -->
+    <div class="res-card" id="qBreakdown">
+      <h3>📋 Question Breakdown</h3>
+      <div id="qBreakdownList"></div>
+    </div>
+
+    <!-- Strengths + improvements -->
+    <div class="str-imp" id="strImpRow">
+      <div class="str-box" style="border-color:rgba(34,197,94,.18)">
+        <h4 style="color:var(--green)">💪 Strengths</h4>
+        <p id="strText"></p>
+      </div>
+      <div class="str-box" style="border-color:rgba(255,107,43,.18)">
+        <h4 style="color:var(--fire)">🎯 Improve</h4>
+        <p id="impText"></p>
+      </div>
+    </div>
+
+    <div class="retry-row">
+      <button class="btn-retry" onclick="retryMock()">🔄 Try Again</button>
+      <a href="user.html" class="btn-dash">🏠 Dashboard</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const GROQ_URL   = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_KEY   = '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';
+
+let M = {
+  role: 'Software Engineer',
+  questions: [],
+  answers: [],
+  curQ: 0,
+  totalQ: 5,
+  timeSec: 120,
+  timer: null,
+  evalResult: null,
+};
+
+// ── Role chips ──
+document.querySelectorAll('.role-chip').forEach(c => {
+  c.addEventListener('click', () => {
+    document.querySelectorAll('.role-chip').forEach(x => x.classList.remove('sel'));
+    c.classList.add('sel');
+    M.role = c.dataset.role;
+    document.getElementById('customRole').value = '';
+  });
+});
+document.getElementById('customRole').addEventListener('input', function() {
+  if (this.value.trim()) {
+    document.querySelectorAll('.role-chip').forEach(x => x.classList.remove('sel'));
+    M.role = this.value.trim();
+  }
+});
+
+// ── Helpers ──
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+}
+function setStep(n, state) {
+  const el = document.getElementById('ls' + n);
+  if (!el) return;
+  el.className = 'lstep ' + state;
+  el.querySelector('.lstep-ic').textContent = state === 'done' ? '✅' : state === 'active' ? '⚙️' : '⏳';
+}
+function toast(msg, dur = 3500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), dur);
+}
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function callGroq(prompt, maxTokens = 1000) {
+  const res = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      max_tokens: maxTokens,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!res.ok) throw new Error('API error ' + res.status);
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+// ── START MOCK ──
+async function startMock() {
+  const customRole = document.getElementById('customRole').value.trim();
+  if (customRole) M.role = customRole;
+  M.totalQ  = parseInt(document.getElementById('qCountSel').value) || 5;
+  M.timeSec = parseInt(document.getElementById('timeSel').value) || 120;
+  const diff   = document.getElementById('diffSel').value;
+  const focus  = document.getElementById('focusSel').value;
+  const skills = document.getElementById('skillsInput').value.trim();
+
+  document.getElementById('startBtn').disabled = true;
+  showScreen('screenLoading');
+
+  setStep(1, 'active'); await sleep(400); setStep(1, 'done');
+  setStep(2, 'active'); await sleep(300); setStep(2, 'done');
+  setStep(3, 'active');
+  document.getElementById('loadSub').textContent = 'AI is crafting personalised questions…';
+
+  // ── Build type distribution ──
+  let typeInstructions = '';
+  if (focus === 'technical')   typeInstructions = `All ${M.totalQ} questions must be technical (coding, architecture, system design, debugging).`;
+  else if (focus === 'behavioural') typeInstructions = `All ${M.totalQ} questions must be behavioural (use "Tell me about a time…", STAR format expected).`;
+  else if (focus === 'situational') typeInstructions = `All ${M.totalQ} questions must be situational/problem-solving ("What would you do if…").`;
+  else {
+    const t = Math.ceil(M.totalQ * 0.4);
+    const b = Math.ceil(M.totalQ * 0.4);
+    const s = M.totalQ - t - b;
+    typeInstructions = `Mix: ${t} technical, ${b} behavioural, ${s} situational. In that order.`;
+  }
+
+  let diffInstructions = '';
+  if (diff === 'easy')   diffInstructions = 'All difficulties: Easy (entry-level, no tricks).';
+  else if (diff === 'medium') diffInstructions = 'All difficulties: Medium.';
+  else if (diff === 'hard')   diffInstructions = 'All difficulties: Hard (senior-level, deep thinking required).';
+  else diffInstructions = 'Mix difficulties: roughly equal Easy, Medium, Hard spread across the questions.';
+
+  const prompt = `You are a senior technical interviewer at a top tech company. Generate exactly ${M.totalQ} mock interview questions for a candidate applying for the role: "${M.role}".
+${skills ? `\nCandidate skills: ${skills}` : ''}
+
+${typeInstructions}
+${diffInstructions}
+
+IMPORTANT — make every question UNIQUE and SPECIFIC to the role. No generic filler.
+- Technical questions: ask about real architecture decisions, debugging scenarios, specific technologies, code tradeoffs.
+- Behavioural questions: use "Tell me about a time…" — require STAR answers.
+- Situational questions: present a realistic scenario with constraints.
+
+Respond ONLY with valid JSON (no markdown, no fences):
+{
+  "questions": [
+    {"q": "Full question text here", "type": "Technical", "difficulty": "Medium", "tip": "1-line tip for the candidate on how to approach this"}
+  ]
+}
+
+type must be exactly one of: Technical, Behavioural, Situational
+difficulty must be exactly one of: Easy, Medium, Hard`;
+
+  try {
+    const raw = await callGroq(prompt, 1500);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const si = clean.indexOf('{'), ei = clean.lastIndexOf('}');
+    const parsed = JSON.parse(clean.slice(si, ei + 1));
+    M.questions = parsed.questions.slice(0, M.totalQ);
+    if (M.questions.length < M.totalQ) throw new Error('Too few questions');
+  } catch(e) {
+    console.warn('AI gen failed, using fallback:', e);
+    M.questions = getFallbackQuestions(M.role, M.totalQ);
+  }
+
+  setStep(3, 'done');
+  setStep(4, 'active');
+  M.answers = new Array(M.questions.length).fill('');
+  M.curQ = 0;
+  M.evalResult = null;
+
+  await sleep(500);
+  setStep(4, 'done');
+  await sleep(300);
+
+  buildNavDots();
+  showScreen('screenInterview');
+  loadQ(0);
+}
+
+// ── BUILD NAV DOTS ──
+function buildNavDots() {
+  const nav = document.getElementById('qNav');
+  nav.innerHTML = M.questions.map((_, i) =>
+    `<div class="q-dot${i === 0 ? ' active' : ''}" id="dot${i}" onclick="jumpQ(${i})">${i + 1}</div>`
+  ).join('');
+  document.getElementById('qTotal').textContent = M.questions.length;
+}
+
+function updateDot(i, state) {
+  const d = document.getElementById('dot' + i);
+  if (!d) return;
+  d.className = 'q-dot ' + (state || '');
+}
+
+function jumpQ(i) {
+  if (i === M.curQ) return;
+  saveCurrentAnswer();
+  clearInterval(M.timer);
+  updateDot(M.curQ, M.answers[M.curQ] ? 'answered' : '');
+  M.curQ = i;
+  loadQ(i);
+}
+
+// ── LOAD QUESTION ──
+function loadQ(idx) {
+  const q = M.questions[idx];
+  M.curQ = idx;
+
+  document.getElementById('qNum').textContent = idx + 1;
+  document.getElementById('qText').textContent = q.q;
+
+  // Type badge
+  const tb = document.getElementById('qTypeBadge');
+  tb.textContent = q.type;
+  tb.className = 'qbadge ' + (q.type === 'Technical' ? 'qb-tech' : q.type === 'Behavioural' ? 'qb-beh' : 'qb-sit');
+
+  // Difficulty badge
+  const db = document.getElementById('qDiffBadge');
+  db.textContent = q.difficulty;
+  db.className = 'qbadge ' + (q.difficulty === 'Hard' ? 'qb-hard' : 'qb-diff');
+
+  // Tip
+  const tip = document.getElementById('starTip');
+  if (q.tip) {
+    tip.innerHTML = `💡 <strong>Tip:</strong> ${q.tip}`;
+  } else if (q.type === 'Behavioural') {
+    tip.innerHTML = `💡 <strong>STAR Method:</strong> Describe the <strong>S</strong>ituation, <strong>T</strong>ask, your <strong>A</strong>ction, and the <strong>R</strong>esult.`;
+  } else if (q.type === 'Technical') {
+    tip.innerHTML = `💡 <strong>Tip:</strong> Explain your thought process, mention trade-offs, and use real examples from your experience.`;
+  } else {
+    tip.innerHTML = `💡 <strong>Tip:</strong> State what you'd do, why, and what the expected outcome would be.`;
+  }
+
+  // Restore saved answer
+  document.getElementById('ansBox').value = M.answers[idx] || '';
+  updateCharCount(M.answers[idx] || '');
+
+  // Next button label
+  document.getElementById('nextBtn').textContent =
+    idx + 1 === M.questions.length ? 'Finish Interview →' : 'Submit Answer →';
+
+  // Nav dot
+  document.querySelectorAll('.q-dot').forEach((d, i) => {
+    d.className = 'q-dot' + (i === idx ? ' active' : M.answers[i] ? ' answered' : '');
+  });
+
+  // Timer
+  if (M.timeSec > 0) startTimer();
+  else { document.getElementById('timerDisp').textContent = '∞'; document.getElementById('timerFg').style.width = '100%'; }
+
+  document.getElementById('ansBox').focus();
+}
+
+// ── CHAR COUNT ──
+function updateCharCount(text) {
+  const len = text.length;
+  document.getElementById('charCount').textContent = len + ' chars';
+  const hint = document.getElementById('charHint');
+  if (len === 0) { hint.textContent = ''; return; }
+  if (len < 50) { hint.textContent = '⚠️ Too short'; hint.style.color = '#f87171'; }
+  else if (len < 150) { hint.textContent = '🟡 Add more detail'; hint.style.color = '#eab308'; }
+  else { hint.textContent = '✅ Good depth'; hint.style.color = '#22c55e'; }
+}
+document.getElementById('ansBox').addEventListener('input', function() { updateCharCount(this.value); });
+
+// ── TIMER ──
+function startTimer() {
+  clearInterval(M.timer);
+  let secs = M.timeSec;
+  const disp = document.getElementById('timerDisp');
+  const fg   = document.getElementById('timerFg');
+  const update = () => {
+    const m = Math.floor(secs / 60), s = String(secs % 60).padStart(2, '0');
+    disp.textContent = m + ':' + s;
+    disp.style.color = secs <= 30 ? '#f87171' : secs <= 60 ? '#eab308' : 'var(--pulse)';
+    fg.style.width = (secs / M.timeSec * 100) + '%';
+    fg.style.background = secs <= 30 ? 'var(--fire)' : secs <= 60 ? '#eab308' : 'var(--pulse)';
+  };
+  update();
+  M.timer = setInterval(() => {
+    secs--;
+    update();
+    if (secs <= 0) { clearInterval(M.timer); toast('⏰ Time\'s up! Moving on…'); submitAnswer(); }
+  }, 1000);
+}
+
+function saveCurrentAnswer() {
+  M.answers[M.curQ] = document.getElementById('ansBox').value.trim();
+}
+
+// ── SUBMIT / SKIP ──
+function submitAnswer() {
+  clearInterval(M.timer);
+  saveCurrentAnswer();
+  updateDot(M.curQ, M.answers[M.curQ] ? 'answered' : '');
+  advance();
+}
+function skipAnswer() {
+  clearInterval(M.timer);
+  M.answers[M.curQ] = '';
+  updateDot(M.curQ, 'skipped');
+  advance();
+}
+function advance() {
+  if (M.curQ + 1 < M.questions.length) {
+    M.curQ++;
+    loadQ(M.curQ);
+  } else {
+    finishInterview();
+  }
+}
+
+// ── FINISH ──
+async function finishInterview() {
+  clearInterval(M.timer);
+  showScreen('screenEval');
+
+  // Eval progress animation
+  let prog = 0;
+  const statuses = ['Reading your answers…', 'Checking technical depth…', 'Evaluating communication…', 'Scoring each response…', 'Building your feedback…'];
+  let si = 0;
+  const barInt = setInterval(() => {
+    prog = Math.min(prog + 1.5, 88);
+    document.getElementById('evalBar').style.width = prog + '%';
+    if (prog > si * 18 && si < statuses.length) {
+      document.getElementById('evalStatus').textContent = statuses[si++];
+    }
+  }, 120);
+
+  const qaPairs = M.questions.map((q, i) =>
+    `Q${i + 1} [${q.type} - ${q.difficulty}]: ${q.q}\nAnswer: ${M.answers[i] || '[Skipped / No answer]'}`
+  ).join('\n\n');
+
+  const evalPrompt = `You are a strict but fair technical interviewer evaluating a candidate for: "${M.role}".
+
+Interview responses:
+${qaPairs}
+
+Score honestly based on:
+- Technical accuracy and depth
+- Specific examples and metrics used
+- Clarity and structure
+- Relevance to the ${M.role} role
+- Empty/skipped answers = 0 score
+
+Respond ONLY with valid JSON (no markdown):
+{
+  "overall_score": <0-100>,
+  "feedback": [
+    {"q_num": 1, "score": <0-100>, "verdict": "Good", "comment": "Specific 1-2 sentence feedback"},
+    {"q_num": 2, "score": <0-100>, "verdict": "Average", "comment": "Specific 1-2 sentence feedback"}
+  ],
+  "strengths": "2-3 sentences on what the candidate did well",
+  "improvements": "2-3 sentences on specific areas to improve with actionable advice",
+  "hire_recommendation": "Strong Yes / Yes / Maybe / No"
+}
+verdict must be exactly: Good, Average, or Weak`;
+
+  try {
+    const raw = await callGroq(evalPrompt, 1200);
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const si2 = clean.indexOf('{'), ei = clean.lastIndexOf('}');
+    M.evalResult = JSON.parse(clean.slice(si2, ei + 1));
+  } catch(e) {
+    console.warn('AI eval failed, using local scoring:', e);
+    M.evalResult = localScore();
+  }
+
+  clearInterval(barInt);
+  document.getElementById('evalBar').style.width = '100%';
+  await sleep(600);
+
+  showScreen('screenResults');
+  renderResults();
+}
+
+function localScore() {
+  const scores = M.answers.map(a => {
+    if (!a || a.length < 10) return 15;
+    const len = a.length;
+    const hasNums = /\d/.test(a);
+    const hasEx = /example|instance|time|when|project|built|created|led|designed|implemented/i.test(a);
+    return Math.min(92, Math.round(25 + Math.min(40, len / 8) + (hasNums ? 12 : 0) + (hasEx ? 15 : 0)));
+  });
+  const overall = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+  return {
+    overall_score: overall,
+    feedback: scores.map((sc, i) => ({
+      q_num: i + 1, score: sc,
+      verdict: sc >= 70 ? 'Good' : sc >= 45 ? 'Average' : 'Weak',
+      comment: sc >= 70 ? 'Solid answer with good specifics.' : sc >= 45 ? 'Decent but needs more depth and examples.' : 'Too brief or skipped — try to give a detailed answer.'
+    })),
+    strengths: 'You attempted the questions and provided responses. Structure and specificity will improve your score.',
+    improvements: 'Add specific examples with metrics (numbers, percentages, timelines). Use the STAR method for behavioural questions.',
+    hire_recommendation: overall >= 70 ? 'Yes' : overall >= 50 ? 'Maybe' : 'No'
+  };
+}
+
+// ── RENDER RESULTS ──
+function renderResults() {
+  const r = M.evalResult;
+  const score = r.overall_score;
+
+  // Score ring
+  document.getElementById('finalScoreNum').textContent = score + '%';
+  const arc = document.getElementById('scoreArc');
+  const circ = 2 * Math.PI * 60;
+  const offset = circ - (score / 100) * circ;
+  arc.style.strokeDashoffset = offset;
+  arc.style.stroke = score >= 75 ? '#22c55e' : score >= 50 ? '#eab308' : '#f87171';
+  setTimeout(() => { arc.style.transition = 'stroke-dashoffset 1.2s ease'; arc.style.strokeDashoffset = offset; }, 100);
+
+  // Recommendation badge
+  const rec = r.hire_recommendation || 'Maybe';
+  const recBadge = document.getElementById('recBadge');
+  const recMap = {
+    'Strong Yes': { color: '#22c55e', bg: 'rgba(34,197,94,.12)', icon: '🌟', border: 'rgba(34,197,94,.25)' },
+    'Yes':        { color: '#22c55e', bg: 'rgba(34,197,94,.09)', icon: '✅', border: 'rgba(34,197,94,.2)' },
+    'Maybe':      { color: '#eab308', bg: 'rgba(234,179,8,.1)',  icon: '⚖️', border: 'rgba(234,179,8,.2)' },
+    'No':         { color: '#f87171', bg: 'rgba(248,113,113,.1)', icon: '❌', border: 'rgba(248,113,113,.2)' },
+  };
+  const rm = recMap[rec] || recMap['Maybe'];
+  recBadge.style.cssText = `color:${rm.color};background:${rm.bg};border:1px solid ${rm.border};margin:0 auto`;
+  recBadge.textContent = rm.icon + ' ' + rec;
+
+  // Per-question breakdown
+  const list = document.getElementById('qBreakdownList');
+  list.innerHTML = (r.feedback || []).map((fb, i) => {
+    const q = M.questions[i] || {};
+    const ans = M.answers[i] || '';
+    const sc = fb.score || 0;
+    const scColor = sc >= 70 ? '#22c55e' : sc >= 45 ? '#eab308' : '#f87171';
+    const vClass = fb.verdict === 'Good' ? 'v-good' : fb.verdict === 'Average' ? 'v-avg' : 'v-weak';
+    const barBg = sc >= 70 ? '#22c55e' : sc >= 45 ? '#eab308' : '#f87171';
+    return `<div class="qa-item">
+      <div class="qa-q"><span class="qa-q-num">Q${i + 1}</span> ${q.q || ''}</div>
+      <div class="qa-score-row">
+        <span style="color:${scColor};font-weight:800;font-family:var(--mono);font-size:15px">${sc}%</span>
+        <div class="qa-score-bar"><div class="qa-score-fill" style="width:${sc}%;background:${barBg}"></div></div>
+        <span class="qa-verdict ${vClass}">${fb.verdict}</span>
+      </div>
+      <div class="qa-comment">${fb.comment || ''}</div>
+      ${ans ? `<div class="qa-answer-preview">"${ans.slice(0, 120)}${ans.length > 120 ? '…' : ''}"</div>` : '<div class="qa-answer-preview" style="color:#f87171">Skipped / No answer</div>'}
+    </div>`;
+  }).join('');
+
+  document.getElementById('strText').textContent = r.strengths || '—';
+  document.getElementById('impText').textContent = r.improvements || '—';
+}
+
+// ── RETRY ──
+function retryMock() {
+  clearInterval(M.timer);
+  M.questions = []; M.answers = []; M.curQ = 0; M.evalResult = null;
+  showScreen('screenConfig');
+  document.getElementById('startBtn').disabled = false;
+}
+
+// ── FALLBACK QUESTIONS ──
+function getFallbackQuestions(role, count) {
+  const banks = {
+    'Software Engineer': [
+      {q:"Describe the most complex system you've designed. What were the key architectural decisions and trade-offs?", type:"Technical", difficulty:"Hard", tip:"Focus on scale, data flow, and why you chose certain patterns over others."},
+      {q:"Tell me about a time you had to refactor a large codebase. How did you approach it without breaking existing functionality?", type:"Behavioural", difficulty:"Medium", tip:"Use STAR — mention testing strategy and how you managed risk."},
+      {q:"Your service is seeing 10x unexpected traffic. Walk me through how you'd diagnose and respond in real time.", type:"Situational", difficulty:"Hard", tip:"Cover monitoring, scaling, rollback, and communication to stakeholders."},
+      {q:"Explain the difference between horizontal and vertical scaling. When would you choose one over the other?", type:"Technical", difficulty:"Medium", tip:"Use a concrete example from experience or a hypothetical system."},
+      {q:"Tell me about a time you disagreed with a technical decision made by your team lead. What did you do?", type:"Behavioural", difficulty:"Medium", tip:"Show how you raised concerns professionally and the outcome."},
+      {q:"How do you ensure code you write today is maintainable by someone else 2 years from now?", type:"Technical", difficulty:"Easy", tip:"Mention documentation, naming, testing, and code review practices."},
+      {q:"Your production deployment just caused a critical bug at 2 AM. Walk me through your exact response.", type:"Situational", difficulty:"Hard", tip:"Cover detection, rollback decision, communication, and post-mortem."},
+      {q:"Describe a time you had to meet a very tight deadline. How did you prioritise and what did you cut?", type:"Behavioural", difficulty:"Medium", tip:"Be honest about trade-offs and what you'd do differently."},
+      {q:"Explain how you'd design a URL shortener like bit.ly. Focus on the data model and read/write scalability.", type:"Technical", difficulty:"Hard", tip:"Cover hashing, collision handling, caching, and database choice."},
+      {q:"Tell me about the most impactful piece of code you've written. What made it impactful?", type:"Behavioural", difficulty:"Easy", tip:"Quantify impact — time saved, performance improvement, users affected."},
+    ],
+    'Data Scientist': [
+      {q:"Walk me through a machine learning project from problem definition to deployment. What would you do differently now?", type:"Technical", difficulty:"Hard", tip:"Cover the full ML lifecycle including monitoring and retraining."},
+      {q:"Tell me about a time your model performed well in testing but failed in production. How did you diagnose it?", type:"Behavioural", difficulty:"Hard", tip:"Discuss data drift, feature distribution shift, and your debugging approach."},
+      {q:"You're given a dataset with 45% missing values and strong class imbalance. Walk me through your complete approach.", type:"Situational", difficulty:"Hard", tip:"Cover imputation strategy, resampling techniques, and metric selection."},
+      {q:"How do you explain a complex model's predictions to a non-technical executive who needs to make a business decision?", type:"Behavioural", difficulty:"Medium", tip:"Mention SHAP values, visualisations, and translating output to business terms."},
+      {q:"What's the difference between bagging and boosting? When would you use XGBoost vs a neural network?", type:"Technical", difficulty:"Medium", tip:"Be specific about data size, interpretability, and latency requirements."},
+    ],
+    'default': [
+      {q:"Tell me about the most challenging project you've worked on. What was your specific contribution and what was the outcome?", type:"Technical", difficulty:"Medium", tip:"Quantify impact — use numbers, percentages, or time saved."},
+      {q:"Describe a time you failed at something important. What happened, what did you learn, and what changed after?", type:"Behavioural", difficulty:"Medium", tip:"Be honest — interviewers value self-awareness over perfection."},
+      {q:"How do you prioritise when you have multiple urgent tasks and limited time? Give a real example.", type:"Behavioural", difficulty:"Medium", tip:"Show a system or framework — not just 'I make a list'."},
+      {q:"Tell me about a time you had to influence someone without having direct authority. What was the outcome?", type:"Behavioural", difficulty:"Hard", tip:"Focus on how you built trust, used data, and adapted your approach."},
+      {q:"You've just joined a new team and spotted a serious technical problem nobody else has noticed. What do you do?", type:"Situational", difficulty:"Medium", tip:"Balance urgency with relationship-building as a newcomer."},
+    ]
+  };
+  const pool = banks[role] || banks['default'];
+  // Cycle through pool to fill count
+  const result = [];
+  for (let i = 0; i < count; i++) result.push(pool[i % pool.length]);
+  return result;
+}
+</script>
+<script src="chatbot.js"></script>
+</body>
+</html>

@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Mock Assessment | SkillPulse</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ff:'Sora',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+  --ink:#06060f; --surface:#09091a; --card:#0e0e1f; --card2:#13132a;
+  --border:rgba(255,255,255,.07); --border2:rgba(255,255,255,.13);
+  --pulse:#00d4ff; --glow:#7c3aed; --fire:#ff6b2b; --green:#22c55e; --yellow:#eab308;
+  --text:#e2e8f0; --muted:#64748b; --muted2:#94a3b8; --r:14px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ff);background:var(--ink);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 24px;background:rgba(9,9,26,.95);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);position:sticky;top:0;z-index:99}
+.logo{font-size:19px;font-weight:800;color:#fff;text-decoration:none;display:flex;align-items:center;gap:8px}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--pulse);box-shadow:0 0 10px var(--pulse)}
+.logo span{color:var(--pulse)}
+.mock-badge{font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.2)}
+.back-btn{padding:7px 14px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:9px;color:var(--muted2);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .2s;text-decoration:none}
+.back-btn:hover{color:#fff;background:rgba(255,255,255,.09)}
+.main{max-width:820px;margin:0 auto;padding:28px 18px 60px}
+.screen{display:none}.screen.on{display:block}
+
+/* ── CONFIG ── */
+.hero{text-align:center;margin-bottom:32px}
+.hero-icon{font-size:52px;margin-bottom:14px;display:block}
+.hero h1{font-size:30px;font-weight:800;color:#fff;letter-spacing:-1px;margin-bottom:8px}
+.hero p{color:var(--muted2);font-size:14px;max-width:500px;margin:0 auto;line-height:1.7}
+.practice-banner{display:flex;align-items:center;gap:12px;padding:14px 18px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.18);border-radius:var(--r);margin-bottom:26px;font-size:13px;color:#86efac}
+.practice-banner strong{color:#fff}
+.cfg{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:24px;margin-bottom:18px}
+.cfg h3{font-size:14px;font-weight:700;color:#fff;margin-bottom:16px}
+.topic-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:9px;margin-bottom:12px}
+.t-chip{padding:9px 12px;border-radius:10px;border:1.5px solid var(--border);background:var(--card2);cursor:pointer;font-size:12px;font-weight:600;color:var(--muted2);transition:all .2s;text-align:center}
+.t-chip:hover{border-color:rgba(0,212,255,.3);color:#fff}
+.t-chip.sel{border-color:var(--pulse);background:rgba(0,212,255,.08);color:var(--pulse)}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--muted2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select{width:100%;padding:10px 13px;background:var(--card2);border:1.5px solid var(--border);border-radius:var(--r);color:#fff;font-size:13px;font-family:var(--ff);outline:none;transition:border-color .2s;-webkit-appearance:none}
+.field input::placeholder{color:var(--muted)}
+.field input:focus,.field select:focus{border-color:var(--pulse)}
+.field select option{background:var(--card2)}
+.opt-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:14px}
+.round-toggle{display:flex;gap:10px;margin-bottom:0}
+.r-toggle{flex:1;padding:10px;border-radius:var(--r);border:1.5px solid var(--border);background:var(--card2);cursor:pointer;font-size:13px;font-weight:700;color:var(--muted2);text-align:center;transition:all .2s;user-select:none}
+.r-toggle.on{border-color:var(--pulse);background:rgba(0,212,255,.07);color:var(--pulse)}
+.start-btn{width:100%;padding:15px;background:linear-gradient(135deg,var(--pulse),#009fc2);color:#06060f;border:none;border-radius:var(--r);font-size:15px;font-weight:800;cursor:pointer;font-family:var(--ff);transition:all .3s;display:flex;align-items:center;justify-content:center;gap:8px}
+.start-btn:hover{box-shadow:0 0 32px rgba(0,212,255,.4);transform:translateY(-1px)}
+.start-btn:disabled{opacity:.5;pointer-events:none;transform:none}
+
+/* ── LOADING ── */
+.load-center{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:65vh;text-align:center}
+.spin{width:68px;height:68px;border:3px solid rgba(0,212,255,.1);border-top-color:var(--pulse);border-radius:50%;animation:spin 1s linear infinite;margin-bottom:22px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.load-steps{margin-top:24px;text-align:left;display:flex;flex-direction:column;gap:9px}
+.lstep{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.lstep.done{color:var(--green)}.lstep.active{color:#fff}
+.lstep-ic{font-size:15px;width:20px;text-align:center}
+
+/* ── MCQ SCREEN ── */
+.top-strip{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.top-strip h2{font-size:16px;font-weight:800;color:#fff;flex:1}
+.round-badge{font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;background:rgba(0,212,255,.1);color:var(--pulse);border:1px solid rgba(0,212,255,.2)}
+.timer-pill{font-family:var(--mono);font-size:14px;font-weight:700;padding:5px 14px;border-radius:20px;background:rgba(255,255,255,.05);border:1px solid var(--border);color:#fff;min-width:72px;text-align:center}
+.top-bar{height:4px;background:var(--border);border-radius:3px;margin-bottom:22px;overflow:hidden}
+.top-bar-fg{height:100%;background:linear-gradient(90deg,var(--pulse),var(--glow));border-radius:3px;transition:width .5s}
+.q-nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.q-dot{width:32px;height:32px;border-radius:7px;border:1.5px solid var(--border);background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);cursor:pointer;transition:all .15s}
+.q-dot.active{border-color:var(--pulse);color:var(--pulse);background:rgba(0,212,255,.08)}
+.q-dot.correct{border-color:rgba(34,197,94,.4);color:var(--green);background:rgba(34,197,94,.07)}
+.q-dot.wrong{border-color:rgba(248,113,113,.3);color:#f87171;background:rgba(248,113,113,.06)}
+.q-dot.answered{border-color:rgba(0,212,255,.3);color:var(--pulse)}
+.q-card{background:var(--card);border:1.5px solid rgba(0,212,255,.1);border-radius:16px;padding:22px;margin-bottom:16px}
+.q-meta{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.qbadge{font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px}
+.qb-e{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.qb-m{background:rgba(234,179,8,.1);color:var(--yellow);border:1px solid rgba(234,179,8,.2)}
+.qb-h{background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.2)}
+.q-text{font-size:15px;font-weight:600;color:#fff;line-height:1.7;white-space:pre-wrap;font-family:var(--ff)}
+.q-text code{font-family:var(--mono);background:rgba(0,212,255,.06);padding:1px 6px;border-radius:4px;color:var(--pulse);font-size:13px}
+.opts{display:flex;flex-direction:column;gap:9px;margin-top:4px}
+.opt{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-radius:11px;border:1.5px solid var(--border);background:var(--card2);cursor:pointer;transition:all .2s;font-size:14px;color:var(--muted2);line-height:1.5}
+.opt:hover{border-color:rgba(0,212,255,.3);color:#fff}
+.opt.sel{border-color:var(--pulse);background:rgba(0,212,255,.08);color:#fff}
+.opt.correct{border-color:rgba(34,197,94,.5);background:rgba(34,197,94,.08);color:var(--green)}
+.opt.wrong{border-color:rgba(248,113,113,.4);background:rgba(248,113,113,.06);color:#f87171}
+.opt-letter{font-weight:800;font-size:13px;color:var(--muted);width:18px;flex-shrink:0;margin-top:1px}
+.opt.sel .opt-letter{color:var(--pulse)}
+.opt.correct .opt-letter{color:var(--green)}
+.opt.wrong .opt-letter{color:#f87171}
+.exp-box{margin-top:12px;padding:12px 16px;background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.18);border-radius:10px;font-size:13px;color:#c4b5fd;line-height:1.7;display:none}
+.exp-box.show{display:block}
+.q-actions{display:flex;gap:10px;margin-top:14px}
+.btn-primary{flex:1;padding:11px;background:linear-gradient(135deg,var(--pulse),#009fc2);color:#06060f;border:none;border-radius:var(--r);font-size:14px;font-weight:800;cursor:pointer;font-family:var(--ff);transition:all .2s}
+.btn-primary:hover{box-shadow:0 0 20px rgba(0,212,255,.35)}
+.btn-sec{padding:11px 18px;background:rgba(255,255,255,.04);border:1.5px solid var(--border);border-radius:var(--r);color:var(--muted2);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .2s}
+.btn-sec:hover{color:#fff;border-color:rgba(255,255,255,.2)}
+.finish-mcq-btn{width:100%;margin-top:12px;padding:11px;background:rgba(255,107,43,.08);color:var(--fire);border:1px solid rgba(255,107,43,.22);border-radius:var(--r);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .2s}
+.finish-mcq-btn:hover{background:rgba(255,107,43,.15)}
+
+/* ── PER-Q TIMER SIDEBAR ── */
+.sidebar{display:flex;flex-direction:column;gap:14px}
+.pq-timer{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;text-align:center}
+.pq-timer-text{font-family:var(--mono);font-size:24px;font-weight:700;color:var(--pulse)}
+.pq-bar-wrap{height:4px;background:var(--border);border-radius:3px;margin-top:8px;overflow:hidden}
+.pq-bar-fill{height:100%;background:var(--pulse);border-radius:3px;transition:width .9s linear,background .3s}
+.stat-box{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px}
+.stat-box h4{font-size:11px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.stat-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px}
+.stat-row:last-child{margin-bottom:0}
+.stat-row span:first-child{color:var(--muted2)}
+.stat-row span:last-child{font-weight:700;color:#fff}
+
+.mcq-layout{display:grid;grid-template-columns:1fr 200px;gap:18px;align-items:start}
+@media(max-width:650px){.mcq-layout{grid-template-columns:1fr}}
+
+/* ── CODE SCREEN ── */
+.code-header{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.prob-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.prob-tab{padding:7px 14px;border-radius:8px;border:1.5px solid var(--border);background:var(--card2);font-size:12px;font-weight:700;color:var(--muted2);cursor:pointer;transition:all .2s}
+.prob-tab.active{border-color:var(--pulse);color:var(--pulse);background:rgba(0,212,255,.07)}
+.prob-tab.done{border-color:rgba(34,197,94,.3);color:var(--green)}
+.code-split{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:700px){.code-split{grid-template-columns:1fr}}
+.prob-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;height:fit-content}
+.prob-title{font-size:17px;font-weight:800;color:#fff;margin-bottom:8px}
+.prob-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.ptag{font-size:10px;font-weight:700;padding:2px 8px;border-radius:5px;background:rgba(0,212,255,.07);color:var(--pulse);border:1px solid rgba(0,212,255,.15)}
+.prob-desc{font-size:13px;color:var(--muted2);line-height:1.8;margin-bottom:14px}
+.ex-box{background:var(--card2);border-radius:10px;padding:12px;margin-bottom:10px}
+.ex-box .ex-label{font-size:10px;font-weight:700;color:var(--muted2);text-transform:uppercase;margin-bottom:6px}
+.ex-box pre{font-family:var(--mono);font-size:12px;color:#fff;white-space:pre-wrap;line-height:1.6}
+.constraint-list{list-style:none;display:flex;flex-direction:column;gap:4px}
+.constraint-list li{font-size:12px;color:var(--muted2);display:flex;gap:6px;align-items:flex-start}
+.constraint-list li::before{content:'→';color:var(--pulse);flex-shrink:0}
+.hint-box{background:rgba(234,179,8,.05);border:1px solid rgba(234,179,8,.15);border-radius:9px;padding:10px 14px;margin-top:10px;font-size:12px;color:#fde68a}
+.editor-panel{background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;display:flex;flex-direction:column}
+.editor-topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);background:rgba(0,0,0,.2)}
+.lang-tabs{display:flex;gap:6px}
+.lang-tab{padding:5px 12px;border-radius:7px;border:1px solid var(--border);background:transparent;font-size:12px;font-weight:700;color:var(--muted2);cursor:pointer;font-family:var(--ff);transition:all .2s}
+.lang-tab.on{border-color:var(--pulse);color:var(--pulse);background:rgba(0,212,255,.07)}
+.code-editor{width:100%;min-height:280px;padding:14px;background:#0a0a1a;color:#e2e8f0;font-family:var(--mono);font-size:13px;line-height:1.7;border:none;outline:none;resize:vertical;tab-size:2}
+.editor-footer{display:flex;align-items:center;justify-content:space-between;padding:8px 14px;border-top:1px solid var(--border);background:rgba(0,0,0,.15)}
+.stdin-input{flex:1;padding:7px 12px;background:var(--card2);border:1px solid var(--border);border-radius:8px;color:#fff;font-family:var(--mono);font-size:12px;outline:none;margin-right:10px}
+.run-btn{padding:8px 18px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:9px;color:var(--green);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .2s}
+.run-btn:hover{background:rgba(34,197,94,.18)}
+.submit-code-btn{padding:8px 18px;background:linear-gradient(135deg,var(--pulse),#009fc2);border:none;border-radius:9px;color:#06060f;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--ff);transition:all .2s}
+.submit-code-btn:hover{box-shadow:0 0 18px rgba(0,212,255,.35)}
+.submit-code-btn:disabled{opacity:.5;pointer-events:none}
+.output-panel{background:#0a0a1a;border-top:1px solid var(--border);padding:14px;min-height:90px;font-family:var(--mono);font-size:13px;color:#e2e8f0;white-space:pre-wrap;line-height:1.7}
+.output-panel.success{color:var(--green)}
+.output-panel.error{color:#f87171}
+.cs-ok{color:var(--green);font-weight:700}
+.cs-ce{color:var(--yellow);font-weight:700}
+.cs-err{color:#f87171;font-weight:700}
+.cs-run{color:var(--pulse);font-weight:700}
+.skip-code-btn{padding:9px 16px;background:rgba(255,255,255,.04);border:1.5px solid var(--border);border-radius:var(--r);color:var(--muted2);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .2s}
+.skip-code-btn:hover{color:#fff}
+.finish-code-btn{flex:1;padding:12px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;border-radius:var(--r);font-size:14px;font-weight:800;cursor:pointer;font-family:var(--ff);transition:all .2s}
+.finish-code-btn:hover{box-shadow:0 0 20px rgba(34,197,94,.4)}
+
+/* ── RESULTS ── */
+.res-hero{text-align:center;margin-bottom:28px}
+.score-ring{width:130px;height:130px;border-radius:50%;margin:0 auto 16px;display:flex;align-items:center;justify-content:center;position:relative}
+.score-ring svg{position:absolute;top:0;left:0;transform:rotate(-90deg)}
+.score-ring .inner{z-index:1;text-align:center}
+.score-num{font-size:36px;font-weight:800;color:#fff;font-family:var(--mono);line-height:1}
+.score-sub{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-top:3px}
+.score-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px}
+.sc-box{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center}
+.sc-val{font-size:22px;font-weight:800;color:#fff;font-family:var(--mono);margin-bottom:4px}
+.sc-label{font-size:11px;color:var(--muted2)}
+.diff-breakdown{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:14px}
+.diff-breakdown h3{font-size:14px;font-weight:700;color:#fff;margin-bottom:14px}
+.diff-row{display:flex;align-items:center;gap:12px;margin-bottom:11px;font-size:13px}
+.diff-row:last-child{margin-bottom:0}
+.diff-label{width:60px;color:var(--muted2);font-weight:700;flex-shrink:0}
+.diff-bar-wrap{flex:1;height:7px;background:var(--border);border-radius:4px;overflow:hidden}
+.diff-bar-fill{height:100%;border-radius:4px;transition:width .8s ease}
+.diff-score{width:48px;text-align:right;font-weight:700}
+.review-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:14px}
+.review-card h3{font-size:14px;font-weight:700;color:#fff;margin-bottom:14px}
+.rv-item{border-bottom:1px solid var(--border);padding:12px 0;font-size:13px}
+.rv-item:last-child{border-bottom:none;padding-bottom:0}
+.rv-q{color:#fff;font-weight:600;margin-bottom:6px;line-height:1.6}
+.rv-opts{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.rv-tag{font-size:11px;padding:2px 9px;border-radius:5px;font-weight:700}
+.rv-correct{background:rgba(34,197,94,.1);color:var(--green)}
+.rv-wrong{background:rgba(248,113,113,.1);color:#f87171}
+.rv-exp{font-size:12px;color:var(--muted2);line-height:1.7}
+.retry-row{display:flex;gap:12px;margin-top:6px}
+.btn-retry{flex:1;padding:13px;background:linear-gradient(135deg,var(--pulse),#009fc2);color:#06060f;border:none;border-radius:var(--r);font-size:14px;font-weight:800;cursor:pointer;font-family:var(--ff);transition:all .2s}
+.btn-retry:hover{box-shadow:0 0 24px rgba(0,212,255,.4)}
+.btn-dash{flex:1;padding:13px;background:var(--card);border:1.5px solid var(--border2);border-radius:var(--r);color:var(--text);font-size:13px;font-weight:700;cursor:pointer;font-family:var(--ff);text-decoration:none;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.btn-dash:hover{border-color:rgba(255,255,255,.3)}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--card2);border:1px solid var(--border);border-radius:11px;padding:12px 18px;font-size:13px;color:#fff;z-index:999;box-shadow:0 8px 40px rgba(0,0,0,.4);transform:translateY(70px);opacity:0;transition:all .32s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <a href="user.html" class="logo"><div class="logo-dot"></div>Skill<span>Pulse</span></a>
+  <span class="mock-badge">🧪 Mock Assessment</span>
+  <a href="user.html" class="back-btn">← Dashboard</a>
+</div>
+
+<div class="main">
+
+<!-- ══ CONFIG ══ -->
+<div class="screen on" id="screenConfig">
+  <div class="hero">
+    <span class="hero-icon">🧪</span>
+    <h1>Mock Assessment</h1>
+    <p>Practice with real AI-generated MCQs and coding problems — same quality as the actual assessment. Open to everyone.</p>
+  </div>
+  <div class="practice-banner">
+    <span style="font-size:20px">✅</span>
+    <div><strong>Practice Mode — Open to Everyone.</strong> No HR unlock needed .. Scores are not saved to your profile.</div>
+  </div>
+
+  <div class="cfg">
+    <h3>📚 Choose Topic</h3>
+    <div class="topic-grid" id="topicGrid">
+      <div class="t-chip sel" data-topic="Python">🐍 Python</div>
+      <div class="t-chip" data-topic="JavaScript">🟨 JavaScript</div>
+      <div class="t-chip" data-topic="Java">☕ Java</div>
+      <div class="t-chip" data-topic="C++">⚡ C++</div>
+      <div class="t-chip" data-topic="Data Structures & Algorithms">🌳 DSA</div>
+      <div class="t-chip" data-topic="System Design">🏗 System Design</div>
+      <div class="t-chip" data-topic="SQL & Databases">🗄 SQL</div>
+      <div class="t-chip" data-topic="React">⚛️ React</div>
+      <div class="t-chip" data-topic="Machine Learning">🤖 ML</div>
+      <div class="t-chip" data-topic="Operating Systems">🖥 OS</div>
+      <div class="t-chip" data-topic="Computer Networks">🌐 Networks</div>
+      <div class="t-chip" data-topic="Cloud & DevOps">☁️ Cloud</div>
+    </div>
+    <div class="field" style="margin-top:10px">
+      <label>Or enter custom topic</label>
+      <input type="text" id="customTopic" placeholder="e.g. TypeScript, Redis, Kubernetes…">
+    </div>
+  </div>
+
+  <div class="cfg">
+    <h3>⚙️ Settings</h3>
+    <div class="opt-grid">
+      <div class="field">
+        <label>MCQ Count</label>
+        <select id="mcqCountSel">
+          <option value="15">15 Questions</option>
+          <option value="30" selected>30 Questions</option>
+          <option value="60">60 Questions</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>MCQ Time Limit</label>
+        <select id="timerSel">
+          <option value="0" selected>No Limit</option>
+          <option value="15">15 minutes</option>
+          <option value="30">30 minutes</option>
+          <option value="45">45 minutes</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Per-Question Timer</label>
+        <select id="perQSel">
+          <option value="0" selected>Off</option>
+          <option value="30">30 seconds</option>
+          <option value="45">45 seconds</option>
+          <option value="60">60 seconds</option>
+          <option value="90">90 seconds</option>
+        </select>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:12px"><label>Include Rounds</label></div>
+    <div class="round-toggle">
+      <div class="r-toggle on" id="rtMCQ" onclick="toggleRound('mcq')">📝 MCQ Round</div>
+      <div class="r-toggle on" id="rtCode" onclick="toggleRound('code')">💻 Coding Round</div>
+    </div>
+  </div>
+
+  <button class="start-btn" id="startBtn" onclick="startMockAssessment()">
+    <span>🚀</span> Generate & Start Practice
+  </button>
+</div>
+
+<!-- ══ LOADING ══ -->
+<div class="screen" id="screenLoading">
+  <div class="load-center">
+    <div class="spin"></div>
+    <h2 style="font-size:21px;font-weight:800;color:#fff">Generating your assessment…</h2>
+    <p style="color:var(--muted);font-size:13px;margin-top:7px" id="loadSub">AI is crafting questions for you</p>
+    <div class="load-steps" id="loadSteps">
+      <div class="lstep" id="ls1"><span class="lstep-ic">⏳</span> Connecting to AI</div>
+      <div class="lstep" id="ls2"><span class="lstep-ic">⏳</span> Generating Easy MCQs</div>
+      <div class="lstep" id="ls3"><span class="lstep-ic">⏳</span> Generating Medium MCQs</div>
+      <div class="lstep" id="ls4"><span class="lstep-ic">⏳</span> Generating Hard MCQs</div>
+      <div class="lstep" id="ls5"><span class="lstep-ic">⏳</span> Generating Coding Problems</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MCQ ══ -->
+<div class="screen" id="screenMCQ">
+  <div class="top-strip">
+    <h2 id="mcqTitle">📝 Round 1 — MCQ</h2>
+    <span class="round-badge">Practice Mode</span>
+    <div class="timer-pill" id="timerPill">∞</div>
+  </div>
+  <div class="top-bar"><div class="top-bar-fg" id="topBarFg" style="width:0%"></div></div>
+
+  <div class="mcq-layout">
+    <div>
+      <div class="q-nav" id="qNav"></div>
+      <div class="q-card" id="qCard">
+        <div class="q-meta">
+          <span class="qbadge qb-m" id="qDiffBadge">Medium</span>
+          <span class="qbadge" style="background:rgba(0,212,255,.08);color:var(--pulse);border:1px solid rgba(0,212,255,.18)" id="qNumBadge">Q1</span>
+        </div>
+        <div class="q-text" id="qText">Loading…</div>
+        <div class="opts" id="optsContainer"></div>
+        <div class="exp-box" id="expBox"></div>
+      </div>
+      <div class="q-actions">
+        <button class="btn-primary" id="nextBtn" onclick="nextMCQ()">Next →</button>
+        <button class="btn-sec" onclick="skipMCQ()">Skip ⏩</button>
+      </div>
+      <button class="finish-mcq-btn" onclick="finishMCQ()">Finish MCQ Round →</button>
+    </div>
+    <div class="sidebar">
+      <div class="pq-timer" id="pqTimerBox" style="display:none">
+        <div style="font-size:11px;font-weight:700;color:var(--muted2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Per Question</div>
+        <div class="pq-timer-text" id="pqTimerText">:60</div>
+        <div class="pq-bar-wrap"><div class="pq-bar-fill" id="pqBarFill" style="width:100%"></div></div>
+      </div>
+      <div class="stat-box">
+        <h4>Live Stats</h4>
+        <div class="stat-row"><span>Answered</span><span id="statAnswered">0</span></div>
+        <div class="stat-row"><span>Correct</span><span id="statCorrect" style="color:var(--green)">0</span></div>
+        <div class="stat-row"><span>Wrong</span><span id="statWrong" style="color:#f87171">0</span></div>
+        <div class="stat-row"><span>Skipped</span><span id="statSkipped">0</span></div>
+        <div class="stat-row"><span>Accuracy</span><span id="statAcc" style="color:var(--pulse)">—</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CODING ══ -->
+<div class="screen" id="screenCode">
+  <div class="code-header">
+    <h2 style="font-size:16px;font-weight:800;color:#fff;flex:1">💻 Round 2 — Coding Practice</h2>
+    <span class="round-badge">Practice Mode</span>
+    <button class="finish-code-btn" style="flex:none;padding:8px 18px;font-size:13px" onclick="finishCoding()">Finish & See Results →</button>
+  </div>
+
+  <div class="prob-tabs" id="probTabs"></div>
+
+  <div class="code-split" id="codeSplit">
+    <!-- Problem panel -->
+    <div class="prob-panel" id="probPanel">
+      <div class="prob-title" id="probTitle">Loading…</div>
+      <div class="prob-tags" id="probTags"></div>
+      <div class="prob-desc" id="probDesc"></div>
+      <div class="ex-box">
+        <div class="ex-label">Example</div>
+        <pre id="probExample"></pre>
+      </div>
+      <ul class="constraint-list" id="probConstraints"></ul>
+      <div class="hint-box" id="probHint" style="display:none"></div>
+    </div>
+    <!-- Editor panel -->
+    <div class="editor-panel">
+      <div class="editor-topbar">
+        <div class="lang-tabs" id="langTabs">
+          <button class="lang-tab on" onclick="switchLang('py',this)">Python</button>
+          <button class="lang-tab" onclick="switchLang('js',this)">JavaScript</button>
+          <button class="lang-tab" onclick="switchLang('java',this)">Java</button>
+          <button class="lang-tab" onclick="switchLang('cpp',this)">C++</button>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="skip-code-btn" onclick="skipProblem()">Skip ⏩</button>
+          <button class="submit-code-btn" id="submitBtn" onclick="submitCode()">Submit ✓</button>
+        </div>
+      </div>
+      <textarea class="code-editor" id="codeEditor" spellcheck="false" autocomplete="off" placeholder="// Write your solution here…"></textarea>
+      <div class="editor-footer">
+        <input class="stdin-input" id="stdinInput" placeholder="Custom stdin (optional)">
+        <button class="run-btn" onclick="runCode()">▶ Run</button>
+      </div>
+      <div class="output-panel" id="outputPanel">Output will appear here after running or submitting…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RESULTS ══ -->
+<div class="screen" id="screenResults">
+  <div class="res-hero">
+    <div class="score-ring">
+      <svg width="130" height="130" viewBox="0 0 130 130">
+        <circle cx="65" cy="65" r="56" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="9"/>
+        <circle cx="65" cy="65" r="56" fill="none" id="scoreArc" stroke="#00d4ff" stroke-width="9" stroke-linecap="round" stroke-dasharray="352" stroke-dashoffset="352" style="transition:stroke-dashoffset 1.2s ease"/>
+      </svg>
+      <div class="inner">
+        <div class="score-num" id="finalScore">0%</div>
+        <div class="score-sub">Overall</div>
+      </div>
+    </div>
+    <div id="resultTitle" style="font-size:20px;font-weight:800;color:#fff;margin-bottom:6px"></div>
+    <p style="color:var(--muted2);font-size:13px">Practice mode — results not saved to your profile</p>
+  </div>
+
+  <div class="score-grid">
+    <div class="sc-box"><div class="sc-val" id="rcMCQ">—</div><div class="sc-label">MCQ Score</div></div>
+    <div class="sc-box"><div class="sc-val" id="rcCode">—</div><div class="sc-label">Coding Score</div></div>
+    <div class="sc-box"><div class="sc-val" id="rcTime">—</div><div class="sc-label">Time Taken</div></div>
+  </div>
+
+  <div class="diff-breakdown">
+    <h3>📊 Difficulty Breakdown</h3>
+    <div class="diff-row">
+      <span class="diff-label" style="color:var(--green)">Easy</span>
+      <div class="diff-bar-wrap"><div class="diff-bar-fill" id="eBar" style="background:var(--green);width:0%"></div></div>
+      <span class="diff-score" id="eScore" style="color:var(--green)">—</span>
+    </div>
+    <div class="diff-row">
+      <span class="diff-label" style="color:var(--yellow)">Medium</span>
+      <div class="diff-bar-wrap"><div class="diff-bar-fill" id="mBar" style="background:var(--yellow);width:0%"></div></div>
+      <span class="diff-score" id="mScore" style="color:var(--yellow)">—</span>
+    </div>
+    <div class="diff-row">
+      <span class="diff-label" style="color:#f87171">Hard</span>
+      <div class="diff-bar-wrap"><div class="diff-bar-fill" id="hBar" style="background:#f87171;width:0%"></div></div>
+      <span class="diff-score" id="hScore" style="color:#f87171">—</span>
+    </div>
+  </div>
+
+  <!-- MCQ Review -->
+  <div class="review-card" id="mcqReview">
+    <h3>📋 MCQ Review (first 15 shown)</h3>
+    <div id="mcqReviewList"></div>
+  </div>
+
+  <div class="retry-row">
+    <button class="btn-retry" onclick="retryAssessment()">🔄 Retry</button>
+    <a href="user.html" class="btn-dash">🏠 Dashboard</a>
+  </div>
+</div>
+
+</div><!-- /main -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONSTANTS ──
+const GROQ_URL   = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+const GROQ_KEY   = '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';
+const JUDGE0_URL = 'https://ce.judge0.com/submissions?base64_encoded=false&wait=true';
+const LANG_IDS   = { py:71, js:63, java:62, cpp:54 };
+
+// ── STATE ──
+let S = {
+  topic: 'Python', mcqCount: 30, timerMin: 0, perQSec: 0,
+  rounds: { mcq: true, code: true },
+  questions: [], answers: [], revealed: [],
+  problems: [], codeByLang: {}, codeScores: [],
+  curQ: 0, curProb: 0, curLang: 'py',
+  mcqTimer: null, pqTimer: null, pqLeft: 0,
+  globalTimer: null, startTime: 0,
+  stats: { easy:{c:0,t:0}, medium:{c:0,t:0}, hard:{c:0,t:0} }
+};
+
+// ── UI HELPERS ──
+function showScreen(id){ document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on')); document.getElementById(id).classList.add('on'); }
+function setStep(n,state){ const el=document.getElementById('ls'+n); if(!el)return; el.className='lstep '+state; el.querySelector('.lstep-ic').textContent=state==='done'?'✅':state==='active'?'⚙️':'⏳'; }
+function toast(msg,dur=3200){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),dur); }
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+// ── TOPIC CHIPS ──
+document.querySelectorAll('.t-chip').forEach(c=>{
+  c.addEventListener('click',()=>{
+    document.querySelectorAll('.t-chip').forEach(x=>x.classList.remove('sel'));
+    c.classList.add('sel'); S.topic=c.dataset.topic;
+    document.getElementById('customTopic').value='';
+  });
+});
+document.getElementById('customTopic').addEventListener('input',function(){
+  if(this.value.trim()){ document.querySelectorAll('.t-chip').forEach(x=>x.classList.remove('sel')); S.topic=this.value.trim(); }
+});
+
+// ── ROUND TOGGLE ──
+function toggleRound(r){
+  S.rounds[r]=!S.rounds[r];
+  document.getElementById(r==='mcq'?'rtMCQ':'rtCode').classList.toggle('on',S.rounds[r]);
+  if(!S.rounds.mcq&&!S.rounds.code){ S.rounds[r]=true; document.getElementById(r==='mcq'?'rtMCQ':'rtCode').classList.add('on'); toast('At least one round required.'); }
+}
+
+// ── AI ──
+async function callAI(prompt,maxTokens=3500){
+  const res=await fetch(GROQ_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_KEY},body:JSON.stringify({model:GROQ_MODEL,max_tokens:maxTokens,messages:[{role:'user',content:prompt}]})});
+  const data=await res.json();
+  if(!res.ok) throw new Error(data?.error?.message||'AI error '+res.status);
+  return data.choices?.[0]?.message?.content||'';
+}
+function extractJSONArray(raw){
+  raw=raw.replace(/```json\s*/gi,'').replace(/```\s*/gi,'').trim();
+  const s=raw.indexOf('['),e=raw.lastIndexOf(']');
+  if(s===-1||e===-1) throw new Error('No array');
+  let json=raw.slice(s,e+1);
+  json=json.replace(/,\s*([}\]])/g,'$1');
+  return JSON.parse(json);
+}
+
+// ── GENERATE MCQ BATCH ──
+async function generateMCQBatch(difficulty,topic,count=10){
+  const diffGuide={
+    easy:'fundamental concepts, syntax, definitions — entry-level clarity questions.',
+    medium:'intermediate traps, output prediction, scope/async/closure issues.',
+    hard:'advanced internals, complex output prediction, algorithmic edge cases — FAANG screening level.'
+  };
+  const prompt=`Generate exactly ${count} multiple-choice questions on the topic "${topic}" at ${difficulty.toUpperCase()} difficulty.\nDifficulty guide: ${diffGuide[difficulty]}\n\nReturn ONLY a raw JSON array. No explanation, no markdown:\n[\n  {\n    "q": "Question text (use \\n for code newlines)",\n    "opts": ["Option A","Option B","Option C","Option D"],\n    "ans": 0,\n    "exp": "1-2 sentence explanation of why the answer is correct"\n  }\n]\n\nRules:\n- "ans" is 0-based index of correct option\n- All 4 options must be plausible and distinct\n- Include code snippet questions for medium/hard\n- Every question must be unique and technically precise\n\nOutput only the JSON array:`;
+  const raw=await callAI(prompt,3500);
+  const arr=extractJSONArray(raw);
+  return arr.filter(q=>q.q&&Array.isArray(q.opts)&&q.opts.length===4&&typeof q.ans==='number').slice(0,count).map(q=>({...q,diff:difficulty}));
+}
+
+// ── GENERATE CODING PROBLEMS ──
+async function generateCodingProblems(topic){
+  const problemPrompt=`Generate exactly 3 coding problems for a "${topic}" technical interview.\nThese should be REAL interview-level problems.\n\nReturn ONLY a raw JSON array (no markdown):\n[\n  {\n    "title":"Problem Title",\n    "difficulty":"Easy",\n    "tags":["arrays","hash-map"],\n    "desc":"Full problem description with edge cases. 3-4 sentences.",\n    "inputExample":"Input:\\nnums = [2,7,11,15]\\ntarget = 9",\n    "outputExample":"Output: [0, 1]\\nExplanation: nums[0] + nums[1] = 9",\n    "constraints":["2 <= nums.length <= 10^4","All integers distinct"],\n    "hint":"Think about what data structure allows O(1) lookup"\n  }\n]\n\nDifficulties must be: Easy, Medium, Hard (one each).\nOutput only the JSON array:`;
+  const raw=await callAI(problemPrompt,2500);
+  const problems=extractJSONArray(raw);
+  const result=[];
+  for(const p of problems.slice(0,3)){
+    try{
+      const codeRaw=await callAI(`For this problem, generate starter code (skeleton only, NOT the solution) in Python, JavaScript, Java, and C++.\nProblem: ${p.title}\nDesc: ${p.desc}\nInput: ${p.inputExample}\nOutput: ${p.outputExample}\n\nReturn ONLY JSON object:\n{\n  "py":"complete python starter with function signature + test call using example input + print expected output",\n  "js":"complete js starter with function + test call + console.log",\n  "java":"complete Java with public class Solution + main that tests with example",\n  "cpp":"complete C++ with main that tests with example"\n}\n\nIMPORTANT: Include only the skeleton (function body should be TODO / return null / pass). Must be runnable.\nOutput only the JSON object:`,1800);
+      const clean=codeRaw.replace(/```json\s*/gi,'').replace(/```\s*/gi,'').trim();
+      const si=clean.indexOf('{'),ei=clean.lastIndexOf('}');
+      const obj=JSON.parse(clean.slice(si,ei+1));
+      result.push({...p,starterPy:obj.py||'',starterJs:obj.js||'',starterJava:obj.java||'',starterCpp:obj.cpp||''});
+    }catch(e){
+      result.push({...p,starterPy:`# ${p.title}\n\ndef solve():\n    # TODO\n    pass\n\nprint(solve())`,starterJs:`// ${p.title}\n\nfunction solve() {\n  // TODO\n}\n\nconsole.log(solve());`,starterJava:`public class Solution {\n  public static void solve() {\n    // TODO\n  }\n  public static void main(String[] args) { solve(); }\n}`,starterCpp:`#include<bits/stdc++.h>\nusing namespace std;\n\nvoid solve() {\n  // TODO\n}\n\nint main() { solve(); return 0; }`});
+    }
+  }
+  return result;
+}
+
+// ── START ──
+async function startMockAssessment(){
+  const custom=document.getElementById('customTopic').value.trim();
+  if(custom) S.topic=custom;
+  S.mcqCount=parseInt(document.getElementById('mcqCountSel').value)||30;
+  S.timerMin=parseInt(document.getElementById('timerSel').value)||0;
+  S.perQSec =parseInt(document.getElementById('perQSel').value)||0;
+  document.getElementById('startBtn').disabled=true;
+  showScreen('screenLoading');
+
+  setStep(1,'active'); await sleep(300); setStep(1,'done');
+
+  // MCQ generation
+  S.questions=[]; S.answers=[]; S.revealed=[];
+  S.stats={easy:{c:0,t:0},medium:{c:0,t:0},hard:{c:0,t:0}};
+
+  if(S.rounds.mcq){
+    const perBatch=Math.ceil(S.mcqCount/3);
+    const batches=[{d:'easy',n:2},{d:'medium',n:3},{d:'hard',n:4}];
+    let allQ=[];
+    for(const {d,n} of batches){
+      setStep(n,'active');
+      try{
+        const qs=await generateMCQBatch(d,S.topic,perBatch);
+        allQ=allQ.concat(qs.slice(0,perBatch));
+      }catch(e){
+        console.warn('batch fail',d,e);
+        // simple fallback
+        for(let i=0;i<perBatch;i++) allQ.push({q:`[${d}] ${S.topic} question ${allQ.length+1} — AI generation failed. Please retry.`,opts:['A','B','C','D'],ans:0,exp:'',diff:d});
+      }
+      setStep(n,'done');
+    }
+    S.questions=allQ.slice(0,S.mcqCount);
+    S.answers=new Array(S.questions.length).fill(null);
+    S.revealed=new Array(S.questions.length).fill(false);
+  }
+
+  // Coding generation
+  S.problems=[]; S.codeScores=[];
+  if(S.rounds.code){
+    setStep(5,'active');
+    try{ S.problems=await generateCodingProblems(S.topic); }
+    catch(e){ console.warn('coding gen fail',e); S.problems=[]; }
+    S.codeScores=new Array(S.problems.length).fill(0);
+    S.codeByLang={};
+    setStep(5,'done');
+  }
+
+  S.startTime=Date.now();
+  S.curQ=0; S.curProb=0; S.curLang='py';
+
+  if(S.rounds.mcq){ buildMCQNav(); showScreen('screenMCQ'); loadMCQQuestion(0); startGlobalTimer(); }
+  else { buildCodingUI(); showScreen('screenCode'); }
+}
+
+// ── GLOBAL TIMER ──
+function startGlobalTimer(){
+  clearInterval(S.globalTimer);
+  if(S.timerMin<=0){ document.getElementById('timerPill').textContent='∞'; return; }
+  let secs=S.timerMin*60;
+  const update=()=>{
+    const m=Math.floor(secs/60),s=String(secs%60).padStart(2,'0');
+    const pill=document.getElementById('timerPill');
+    pill.textContent=m+':'+s;
+    pill.style.color=secs<=60?'#f87171':secs<=120?'var(--yellow)':'#fff';
+  };
+  update();
+  S.globalTimer=setInterval(()=>{ secs--; update(); if(secs<=0){ clearInterval(S.globalTimer); toast('⏰ Time\'s up! Finishing MCQ…'); finishMCQ(); } },1000);
+}
+
+// ── MCQ NAV ──
+function buildMCQNav(){
+  const nav=document.getElementById('qNav');
+  nav.innerHTML=S.questions.map((_,i)=>`<div class="q-dot" id="dot${i}" onclick="jumpToQ(${i})">${i+1}</div>`).join('');
+  document.getElementById('mcqTitle').textContent=`📝 Round 1 — MCQ (${S.questions.length} Questions)`;
+}
+function updateDot(i){
+  const d=document.getElementById('dot'+i); if(!d) return;
+  const a=S.answers[i]; const r=S.revealed[i]; const q=S.questions[i];
+  if(r&&a!==null){ d.className='q-dot '+(a===q.ans?'correct':'wrong'); }
+  else if(a!==null){ d.className='q-dot answered'; }
+  else { d.className='q-dot'+(i===S.curQ?' active':''); }
+}
+function jumpToQ(i){ if(i===S.curQ) return; S.curQ=i; loadMCQQuestion(i); }
+
+function updateLiveStats(){
+  let answered=0,correct=0,wrong=0,skipped=0;
+  S.questions.forEach((q,i)=>{
+    if(S.answers[i]===null) skipped++;
+    else{ answered++; if(S.revealed[i]){ if(S.answers[i]===q.ans) correct++; else wrong++; } }
+  });
+  document.getElementById('statAnswered').textContent=answered;
+  document.getElementById('statCorrect').textContent=correct;
+  document.getElementById('statWrong').textContent=wrong;
+  document.getElementById('statSkipped').textContent=skipped;
+  document.getElementById('statAcc').textContent=answered>0?Math.round((correct/answered)*100)+'%':'—';
+  const pct=(answered/(S.questions.length||1))*100;
+  document.getElementById('topBarFg').style.width=pct+'%';
+}
+
+// ── LOAD MCQ QUESTION ──
+function loadMCQQuestion(idx){
+  const q=S.questions[idx]; if(!q) return;
+  document.getElementById('qNumBadge').textContent='Q'+(idx+1)+'/'+S.questions.length;
+  const db=document.getElementById('qDiffBadge');
+  db.textContent=q.diff.charAt(0).toUpperCase()+q.diff.slice(1);
+  db.className='qbadge '+(q.diff==='easy'?'qb-e':q.diff==='hard'?'qb-h':'qb-m');
+  document.getElementById('qText').textContent=q.q;
+  const opts=document.getElementById('optsContainer');
+  opts.innerHTML=['A','B','C','D'].map((l,i)=>`<div class="opt" id="opt${i}" onclick="selectOpt(${i})">${q.opts[i]?`<span class="opt-letter">${l}</span><span>${q.opts[i]}</span>`:''}</div>`).join('');
+  // Restore state
+  const ans=S.answers[idx]; const rev=S.revealed[idx];
+  if(ans!==null&&rev){ showReveal(idx,ans); }
+  else if(ans!==null){ document.getElementById('opt'+ans).classList.add('sel'); }
+  document.getElementById('expBox').className='exp-box';
+  if(rev&&q.exp) { document.getElementById('expBox').textContent='💡 '+q.exp; document.getElementById('expBox').className='exp-box show'; }
+  document.getElementById('nextBtn').textContent=idx+1===S.questions.length?'Finish Round →':'Next →';
+  document.querySelectorAll('.q-dot').forEach((_,i)=>{ const d=document.getElementById('dot'+i); if(d) d.classList.toggle('active',i===idx); });
+  updateDot(idx);
+  if(S.perQSec>0){ stopPQTimer(); if(!S.revealed[idx]) startPQTimer(); }
+}
+
+function selectOpt(i){
+  const rev=S.revealed[S.curQ];
+  if(rev) return; // already answered
+  S.answers[S.curQ]=i;
+  document.querySelectorAll('.opt').forEach((o,j)=>o.classList.toggle('sel',j===i));
+}
+
+function showReveal(idx,chosen){
+  const q=S.questions[idx]; const correct=q.ans;
+  ['opt0','opt1','opt2','opt3'].forEach((_,i)=>{
+    const el=document.getElementById('opt'+i);
+    el.classList.remove('sel');
+    if(i===correct) el.classList.add('correct');
+    else if(i===chosen&&i!==correct) el.classList.add('wrong');
+  });
+}
+
+function nextMCQ(){
+  const q=S.questions[S.curQ]; const ans=S.answers[S.curQ];
+  if(ans===null){ toast('⚠️ Select an answer first (or click Skip)'); return; }
+  if(!S.revealed[S.curQ]){
+    S.revealed[S.curQ]=true; stopPQTimer();
+    const correct=q.ans;
+    const diffKey=q.diff;
+    S.stats[diffKey].t=(S.stats[diffKey].t||0)+1;
+    if(ans===correct) S.stats[diffKey].c=(S.stats[diffKey].c||0)+1;
+    showReveal(S.curQ,ans);
+    if(q.exp){ document.getElementById('expBox').textContent='💡 '+q.exp; document.getElementById('expBox').className='exp-box show'; }
+    updateDot(S.curQ); updateLiveStats();
+    document.getElementById('nextBtn').textContent=S.curQ+1===S.questions.length?'Finish Round →':'Next →';
+    return;
+  }
+  if(S.curQ+1>=S.questions.length){ finishMCQ(); return; }
+  S.curQ++; loadMCQQuestion(S.curQ);
+}
+
+function skipMCQ(){
+  stopPQTimer();
+  S.answers[S.curQ]=null; S.revealed[S.curQ]=false;
+  if(S.curQ+1<S.questions.length){ S.curQ++; loadMCQQuestion(S.curQ); }
+  updateLiveStats();
+}
+
+function finishMCQ(){
+  clearInterval(S.globalTimer); stopPQTimer();
+  // Count unrevealed answers
+  S.questions.forEach((q,i)=>{ if(S.answers[i]!==null&&!S.revealed[i]){ S.revealed[i]=true; const dk=q.diff; S.stats[dk].t=(S.stats[dk].t||0)+1; if(S.answers[i]===q.ans) S.stats[dk].c=(S.stats[dk].c||0)+1; } });
+  if(S.rounds.code&&S.problems.length>0){ buildCodingUI(); showScreen('screenCode'); }
+  else showResults();
+}
+
+// ── PER-Q TIMER ──
+function startPQTimer(){
+  if(S.perQSec<=0) return;
+  document.getElementById('pqTimerBox').style.display='block';
+  S.pqLeft=S.perQSec;
+  const bar=document.getElementById('pqBarFill'),txt=document.getElementById('pqTimerText');
+  const update=()=>{
+    txt.textContent=':'+String(S.pqLeft).padStart(2,'0');
+    const pct=(S.pqLeft/S.perQSec)*100;
+    bar.style.width=pct+'%';
+    bar.style.background=S.pqLeft<=10?'#f87171':S.pqLeft<=20?'var(--yellow)':'var(--pulse)';
+    txt.style.color=S.pqLeft<=10?'#f87171':S.pqLeft<=20?'var(--yellow)':'var(--pulse)';
+  };
+  update();
+  S.pqTimer=setInterval(()=>{
+    S.pqLeft--; update();
+    if(S.pqLeft<=0){
+      clearInterval(S.pqTimer);
+      if(S.curQ+1<S.questions.length){ toast('⏰ Time up — next question!'); S.curQ++; loadMCQQuestion(S.curQ); }
+    }
+  },1000);
+}
+function stopPQTimer(){ clearInterval(S.pqTimer); }
+
+// ── CODING ──
+function buildCodingUI(){
+  const tabs=document.getElementById('probTabs');
+  tabs.innerHTML=S.problems.map((p,i)=>`<div class="prob-tab${i===0?' active':''}" id="pt${i}" onclick="switchProblem(${i})">${i+1}. ${p.difficulty}</div>`).join('');
+  loadProblem(0);
+}
+
+function switchProblem(i){
+  saveCurrentCode();
+  S.curProb=i;
+  document.querySelectorAll('.prob-tab').forEach((t,j)=>{t.className='prob-tab'+(j===i?' active':S.codeScores[j]>0?' done':'');});
+  loadProblem(i);
+}
+
+function loadProblem(i){
+  const p=S.problems[i]; 
+  if(!p){ 
+    document.getElementById('probTitle').textContent='No problem loaded'; 
+    document.getElementById('probDesc').textContent='Problem generation failed. Click Retry to try again.';
+    return; 
+  }
+  S.curProb=i;
+  document.getElementById('probTitle').textContent=p.title+' — '+p.difficulty;
+  document.getElementById('probDesc').textContent=p.desc||'';
+  document.getElementById('probTags').innerHTML=(p.tags||[]).map(t=>`<span class="ptag">${t}</span>`).join('');
+  const ex=document.getElementById('probExample');
+  ex.textContent=(p.inputExample||'')+(p.outputExample?'\n'+p.outputExample:'');
+  const cl=document.getElementById('probConstraints');
+  cl.innerHTML=(p.constraints||[]).map(c=>`<li>${c}</li>`).join('');
+  const hb=document.getElementById('probHint');
+  if(p.hint){ hb.style.display='block'; hb.textContent='💡 Hint: '+p.hint; } else hb.style.display='none';
+  document.getElementById('outputPanel').textContent='Output will appear here after running or submitting…';
+  document.getElementById('outputPanel').className='output-panel';
+  loadCodeForLang(S.curLang);
+}
+
+function switchLang(lang,btn){
+  saveCurrentCode();
+  S.curLang=lang;
+  document.querySelectorAll('.lang-tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+  loadCodeForLang(lang);
+}
+
+function getStarterForLang(p,lang){
+  return lang==='py'?p.starterPy:lang==='js'?p.starterJs:lang==='java'?p.starterJava:p.starterCpp||'';
+}
+
+function loadCodeForLang(lang){
+  const p=S.problems[S.curProb]; if(!p) return;
+  const key=S.curProb+'_'+lang;
+  document.getElementById('codeEditor').value=S.codeByLang[key]!==undefined?S.codeByLang[key]:getStarterForLang(p,lang);
+}
+
+function saveCurrentCode(){
+  const key=S.curProb+'_'+S.curLang;
+  const el=document.getElementById('codeEditor');
+  if(el) S.codeByLang[key]=el.value;
+}
+
+async function runCode(){
+  saveCurrentCode();
+  const code=document.getElementById('codeEditor').value.trim();
+  const stdin=document.getElementById('stdinInput').value;
+  const out=document.getElementById('outputPanel');
+  out.textContent='▶ Running…'; out.className='output-panel';
+  try{
+    const res=await runWithJudge0(code,S.curLang,stdin);
+    const p=parseJudge0Result(res);
+    out.innerHTML=p.badge+'\n'+p.output; out.className='output-panel '+p.cls;
+  }catch(e){ 
+    out.innerHTML='<span class="cs-err">⚠ Compiler Error</span>\n'+e.message+'\n\nTip: ce.judge0.com requires internet. Check your connection.'; 
+    out.className='output-panel error'; 
+  }
+}
+
+async function submitCode(){
+  saveCurrentCode();
+  const code=document.getElementById('codeEditor').value.trim();
+  const p=S.problems[S.curProb];
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true; btn.textContent='Evaluating…';
+  const out=document.getElementById('outputPanel');
+  out.innerHTML='<span class="cs-run">⚙ Evaluating…</span>'; out.className='output-panel';
+
+  let execScore=0,execBadge='',execOutput='';
+  try{
+    const res=await runWithJudge0(code,S.curLang,'');
+    const parsed=parseJudge0Result(res);
+    execBadge=parsed.badge; execOutput=parsed.output;
+    execScore=parsed.status==='SUCCESS'?55:parsed.status==='RUNTIME_ERROR'?10:0;
+    out.innerHTML=execBadge+'\n'+execOutput; out.className='output-panel '+parsed.cls;
+  }catch(e){ execScore=0; execOutput='Compiler unavailable: '+e.message; execBadge='<span class="cs-err">✗ Execution Failed</span>'; out.innerHTML=execBadge+'\n'+execOutput; out.className='output-panel error'; }
+
+  // AI quality bonus
+  try{
+    const aiRaw=await callAI(`Rate this ${S.curLang} code for "${p.title}".\nProblem: ${p.desc}\nCompiler: ${execScore>=55?'Success':'Failed'}\n\nCode:\n${code.slice(0,1400)}\n\nRespond ONLY with JSON: {"bonus":20,"feedback":"2 sentences on correctness, complexity, quality"}\n- bonus 0 if empty/wrong/compile error\n- bonus 10-20 if partial/brute force\n- bonus 30-40 if correct and reasonable\n- bonus 43-45 if optimal and clean`,500);
+    const clean=aiRaw.replace(/```json/g,'').replace(/```/g,'').trim();
+    const si=clean.indexOf('{'),ei=clean.lastIndexOf('}');
+    const obj=JSON.parse(clean.slice(si,ei+1));
+    const bonus=Math.min(45,Math.max(0,obj.bonus||0));
+    const total=Math.min(100,execScore+bonus);
+    S.codeScores[S.curProb]=total;
+    const col=total>=70?'var(--green)':total>=40?'var(--yellow)':'#f87171';
+    out.innerHTML=execBadge+'\n'+execOutput+`\n\n<span style="color:${col};font-weight:700">⚡ Score: ${total}/100</span>\n${obj.feedback||''}`;
+    const pt=document.getElementById('pt'+S.curProb);
+    if(pt) pt.classList.add('done');
+  }catch(e){ S.codeScores[S.curProb]=execScore; }
+
+  btn.disabled=false; btn.textContent='Submit ✓';
+}
+
+function skipProblem(){
+  S.codeScores[S.curProb]=0;
+  const next=S.curProb+1;
+  if(next<S.problems.length) switchProblem(next);
+  else toast('That was the last problem! Click Finish when ready.');
+}
+
+function finishCoding(){ saveCurrentCode(); showResults(); }
+
+// ── JUDGE0 ──
+async function runWithJudge0(code,langKey,stdin){
+  const langId=LANG_IDS[langKey]; if(!langId) throw new Error('Unknown lang');
+  const res=await fetch(JUDGE0_URL,{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Accept':'application/json'},
+    body:JSON.stringify({source_code:code,language_id:langId,stdin:stdin||'',cpu_time_limit:5,memory_limit:128000})
+  });
+  if(!res.ok){ const t=await res.text(); throw new Error('Compiler: '+t.slice(0,200)); }
+  return await res.json();
+}
+function parseJudge0Result(r){
+  const sid=r.status?.id,stdout=r.stdout||'',stderr=r.stderr||'',co=r.compile_output||'';
+  const tm=r.time?`\n\n⏱ ${r.time}s  💾 ${r.memory?Math.round(r.memory/1024)+'KB':''}`:'' ;
+  if(sid===6) return{status:'COMPILE_ERROR',badge:'<span class="cs-ce">⚠ Compilation Error</span>',output:co||stderr||'Compile failed',cls:'error'};
+  if(sid===5) return{status:'TLE',badge:'<span class="cs-err">⏱ Time Limit Exceeded</span>',output:'Check for infinite loops or O(n²) algorithms.',cls:'error'};
+  if(sid>=7&&sid<=12) return{status:'RUNTIME_ERROR',badge:`<span class="cs-err">✗ Runtime Error</span>`,output:(stderr||stdout||'Runtime error')+tm,cls:'error'};
+  if(sid===3) return{status:'SUCCESS',badge:'<span class="cs-ok">✓ Executed Successfully</span>',output:(stdout||'(no output)')+tm,cls:'success'};
+  if(stderr) return{status:'RUNTIME_ERROR',badge:'<span class="cs-err">✗ Error</span>',output:stderr+(stdout?'\n'+stdout:'')+tm,cls:'error'};
+  return{status:'SUCCESS',badge:'<span class="cs-ok">✓ Done</span>',output:(stdout||'(no output)')+tm,cls:'success'};
+}
+
+// ── RESULTS ──
+function showResults(){
+  const elapsed=Math.floor((Date.now()-S.startTime)/1000);
+  const timeStr=`${Math.floor(elapsed/60)}m ${elapsed%60}s`;
+
+  const {easy,medium,hard}=S.stats;
+  const totAnswered=(easy.t||0)+(medium.t||0)+(hard.t||0);
+  const totCorrect=(easy.c||0)+(medium.c||0)+(hard.c||0);
+  const mcqPct=S.rounds.mcq&&totAnswered>0?Math.round((totCorrect/S.questions.length)*100):null;
+  const codePct=S.rounds.code&&S.problems.length>0?Math.round(S.codeScores.reduce((a,b)=>a+b,0)/S.problems.length):null;
+  let overall=0;
+  if(mcqPct!==null&&codePct!==null) overall=Math.round(mcqPct*0.6+codePct*0.4);
+  else if(mcqPct!==null) overall=mcqPct;
+  else if(codePct!==null) overall=codePct;
+
+  document.getElementById('finalScore').textContent=overall+'%';
+  const arc=document.getElementById('scoreArc');
+  setTimeout(()=>{ arc.style.strokeDashoffset=352-(352*(overall/100)); },200);
+  arc.style.stroke=overall>=80?'var(--green)':overall>=60?'var(--yellow)':'#f87171';
+  document.getElementById('resultTitle').textContent=overall>=80?'🏆 Excellent Practice!':overall>=60?'👍 Good Effort!':'💪 Keep Practicing!';
+  document.getElementById('rcMCQ').textContent=mcqPct!==null?mcqPct+'%':'—';
+  document.getElementById('rcCode').textContent=codePct!==null?codePct+'%':'—';
+  document.getElementById('rcTime').textContent=timeStr;
+
+  // Bars
+  setTimeout(()=>{
+    const ePct=easy.t>0?Math.round((easy.c/easy.t)*100):0;
+    const mPct=medium.t>0?Math.round((medium.c/medium.t)*100):0;
+    const hPct=hard.t>0?Math.round((hard.c/hard.t)*100):0;
+    document.getElementById('eBar').style.width=ePct+'%';
+    document.getElementById('mBar').style.width=mPct+'%';
+    document.getElementById('hBar').style.width=hPct+'%';
+    document.getElementById('eScore').textContent=`${easy.c||0}/${easy.t||0}`;
+    document.getElementById('mScore').textContent=`${medium.c||0}/${medium.t||0}`;
+    document.getElementById('hScore').textContent=`${hard.c||0}/${hard.t||0}`;
+  },400);
+
+  // MCQ Review (first 15)
+  const review=document.getElementById('mcqReviewList');
+  review.innerHTML=S.questions.slice(0,15).map((q,i)=>{
+    const chosen=S.answers[i]; const correct=q.ans; const wasRight=chosen===correct&&chosen!==null;
+    return`<div class="rv-item">
+      <div class="rv-q">Q${i+1}: ${q.q.slice(0,110)}${q.q.length>110?'…':''}</div>
+      <div class="rv-opts">
+        ${chosen!==null?`<span class="rv-tag ${wasRight?'rv-correct':'rv-wrong'}">${wasRight?'✓':'✗'} Your answer: ${q.opts[chosen]?.slice(0,30)||'?'}</span>`:'<span class="rv-tag" style="background:rgba(100,116,139,.1);color:var(--muted)">Skipped</span>'}
+        ${!wasRight&&chosen!==null?`<span class="rv-tag rv-correct">✓ Correct: ${q.opts[correct]?.slice(0,30)||'?'}</span>`:''}
+      </div>
+      ${q.exp?`<div class="rv-exp">💡 ${q.exp}</div>`:''}
+    </div>`;
+  }).join('');
+
+  showScreen('screenResults');
+}
+
+// ── RETRY ──
+function retryAssessment(){
+  clearInterval(S.globalTimer); clearInterval(S.pqTimer);
+  S.questions=[];S.answers=[];S.revealed=[];S.problems=[];S.codeByLang={};S.codeScores=[];
+  S.stats={easy:{c:0,t:0},medium:{c:0,t:0},hard:{c:0,t:0}};
+  document.getElementById('startBtn').disabled=false;
+  showScreen('screenConfig');
+}
+
+// Tab handle (code editor tab key)
+document.getElementById('codeEditor').addEventListener('keydown',function(e){
+  if(e.key==='Tab'){e.preventDefault();const s=this.selectionStart;this.value=this.value.slice(0,s)+'  '+this.value.slice(this.selectionEnd);this.selectionStart=this.selectionEnd=s+2;}
+});
+</script>
+<script src="chatbot.js"></script>
+</body>
+</html>

@@ -1,0 +1,3339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard | SkillPulse</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- mammoth for DOCX parsing -->
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+<!-- PDF.js for PDF text extraction -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{
+  --ff:'Sora',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --ink:#06060f;--surface:#0a0a18;--card:#0f0f1e;--card2:#14142a;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.12);
+  --pulse:#00d4ff;--glow:#7c3aed;--fire:#ff6b2b;--green:#22c55e;--yellow:#f59e0b;--pink:#f472b6;
+  --text:#e2e8f0;--muted:#64748b;--muted2:#94a3b8;
+  --r:12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--ff);background:var(--ink);color:var(--text);display:flex;min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* ── SIDEBAR ── */
+.sb{width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50}
+.sb-logo{padding:24px 20px 18px;border-bottom:1px solid var(--border);font-size:21px;font-weight:800;letter-spacing:-.8px;color:#fff;text-decoration:none;display:block;white-space:nowrap}
+.logo-text{display:inline;letter-spacing:-.8px}
+.sb-logo span{color:var(--pulse)}
+.sb-logo small{display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:500;margin-top:2px}
+.sb-nav{flex:1;padding:14px 10px;overflow-y:auto}
+.ns{font-size:9.5px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:14px 10px 5px;font-weight:600}
+.ni{display:flex;align-items:center;gap:11px;padding:10px 13px;border-radius:var(--r);cursor:pointer;font-size:13.5px;color:var(--muted);transition:all .2s;margin-bottom:2px;border:1px solid transparent;font-family:var(--ff)}
+.ni:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.ni.on{background:rgba(0,212,255,.08);color:var(--pulse);border-color:rgba(0,212,255,.14)}
+.ni-ic{font-size:15px;flex-shrink:0;width:18px;text-align:center}
+.nbadge{margin-left:auto;background:var(--fire);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px}
+.sb-user{padding:14px 16px;border-top:1px solid var(--border);display:flex;align-items:center;gap:11px}
+.av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--pulse),var(--glow));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff;flex-shrink:0}
+.un{font-size:13px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ur{font-size:11px;color:var(--pulse)}
+.lout{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;transition:color .2s;margin-left:auto}
+.lout:hover{color:#f87171}
+
+/* ── MAIN ── */
+.main{margin-left:240px;flex:1;min-width:0}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid var(--border);background:rgba(6,6,15,.9);backdrop-filter:blur(16px);position:sticky;top:0;z-index:40}
+.tb-title{font-size:18px;font-weight:700;color:#fff;letter-spacing:-.4px}
+.tb-right{display:flex;align-items:center;gap:10px}
+.tb-badge{padding:5px 12px;border-radius:100px;font-size:12px;font-weight:600;border:1px solid var(--border)}
+.tb-badge.pending{color:var(--yellow);border-color:rgba(245,158,11,.25);background:rgba(245,158,11,.08)}
+.tb-badge.approved{color:var(--green);border-color:rgba(34,197,94,.25);background:rgba(34,197,94,.08)}
+.tb-badge.submitted{color:var(--pulse);border-color:rgba(0,212,255,.25);background:rgba(0,212,255,.08)}
+.tb-badge.rejected{color:#f87171;border-color:rgba(248,113,113,.25);background:rgba(248,113,113,.08)}
+
+/* ── PAGES ── */
+.pg{padding:28px 28px;display:none}
+.pg.on{display:block}
+.pg-header{margin-bottom:24px}
+.pg-header h2{font-size:22px;font-weight:800;color:#fff;letter-spacing:-.6px;margin-bottom:4px}
+.pg-header p{color:var(--muted);font-size:14px;line-height:1.6}
+
+/* ── CARDS / PANELS ── */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:22px;margin-bottom:18px}
+.panel.glow-border{border-color:rgba(0,212,255,.2);box-shadow:0 0 24px rgba(0,212,255,.05)}
+.ptitle{font-size:14px;font-weight:700;color:#fff;margin-bottom:16px;display:flex;align-items:center;gap:10px}
+.tag{font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px}
+.t-ai{background:rgba(124,58,237,.2);color:#a78bfa;border:1px solid rgba(124,58,237,.3)}
+.t-new{background:rgba(0,212,255,.15);color:var(--pulse);border:1px solid rgba(0,212,255,.25)}
+.t-pro{background:rgba(255,107,43,.15);color:var(--fire);border:1px solid rgba(255,107,43,.25)}
+
+/* ── GRID ── */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+
+/* ── STAT CARDS ── */
+.sc{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:18px}
+.sc-l{font-size:12px;color:var(--muted);margin-bottom:8px;font-weight:500;text-transform:uppercase;letter-spacing:.5px}
+.sc-v{font-size:28px;font-weight:800;color:#fff;letter-spacing:-1px;margin-bottom:4px}
+.sc-c{font-size:12px;color:var(--muted)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:10px;border:none;font-size:13.5px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .2s;text-decoration:none}
+.bp{background:var(--pulse);color:#06060f}
+.bp:hover{box-shadow:0 0 24px rgba(0,212,255,.35);transform:translateY(-1px)}
+.bp:disabled{opacity:.5;pointer-events:none}
+.bo{background:transparent;color:var(--text);border:1px solid var(--border2)}
+.bo:hover{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.2)}
+.bd{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.25)}
+.bd:hover{background:rgba(239,68,68,.2)}
+.bg{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.25)}
+.bg:hover{background:rgba(34,197,94,.2)}
+.bfull{width:100%}
+
+/* ── UPLOAD ZONE ── */
+.upz{border:2px dashed var(--border2);border-radius:var(--r);padding:36px 24px;text-align:center;cursor:pointer;transition:all .3s;background:rgba(255,255,255,.01)}
+.upz:hover,.upz.drag{border-color:var(--pulse);background:rgba(0,212,255,.04)}
+.upz-icon{font-size:40px;margin-bottom:12px}
+.upz h3{font-size:16px;font-weight:700;color:#fff;margin-bottom:6px}
+.upz p{font-size:13px;color:var(--muted);margin-bottom:16px}
+input[type=file]{display:none}
+
+/* ── FILE PREVIEW ── */
+.file-preview{display:none;align-items:center;gap:14px;padding:14px 16px;background:var(--card2);border:1px solid rgba(0,212,255,.2);border-radius:var(--r);margin-bottom:14px}
+.file-preview.show{display:flex}
+.file-icon{width:42px;height:42px;background:rgba(0,212,255,.1);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:14px;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.file-remove{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px;transition:color .2s}
+.file-remove:hover{color:#f87171}
+
+/* ── ATS RESULT ── */
+.ats-res{display:none;margin-top:0}
+.ats-res.show{display:block}
+.score-ring-wrap{display:flex;flex-direction:column;align-items:center;gap:8px}
+.circle{width:120px;height:120px;border-radius:50%;background:conic-gradient(#22c55e 0deg,var(--card2) 0deg);display:flex;align-items:center;justify-content:center;transition:background .5s}
+.ci2{width:88px;height:88px;background:var(--card);border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.cv{font-size:26px;font-weight:800;color:#fff;line-height:1;font-family:var(--mono)}
+.cl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+.ats-row{display:flex;gap:22px;align-items:flex-start;margin-bottom:20px}
+.ats-cats{flex:1}
+.cat-row{margin-bottom:10px}
+.cat-hd{display:flex;justify-content:space-between;font-size:12px;color:var(--muted2);margin-bottom:4px;font-weight:500}
+.bar-bg{height:6px;background:var(--card2);border-radius:3px;overflow:hidden}
+.bar-fg{height:100%;border-radius:3px;transition:width 1s cubic-bezier(.34,1.56,.64,1);width:0%}
+
+/* ── EXTRACTED FIELDS (new) ── */
+.extracted-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:18px}
+.ef-card{background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:14px}
+.ef-label{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:6px;font-weight:600}
+.ef-value{font-size:14px;color:#fff;font-weight:500;line-height:1.5}
+.ef-value.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.chip{font-size:12px;padding:3px 10px;border-radius:100px;font-weight:500}
+.cf{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.cm{background:rgba(255,107,43,.1);color:var(--fire);border:1px solid rgba(255,107,43,.2)}
+.cn{background:rgba(0,212,255,.1);color:var(--pulse);border:1px solid rgba(0,212,255,.15)}
+.cg{background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.2)}
+
+/* ── VERSIONS ── */
+.ver-list{display:flex;flex-direction:column;gap:8px}
+.ver-item{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--card2);border:1px solid var(--border);border-radius:10px;transition:border-color .2s}
+.ver-item:hover{border-color:var(--border2)}
+.ver-item.active-ver{border-color:rgba(0,212,255,.3);background:rgba(0,212,255,.04)}
+.ver-num{font-size:11px;font-weight:700;color:var(--pulse);font-family:var(--mono);background:rgba(0,212,255,.1);padding:3px 8px;border-radius:5px}
+.ver-info{flex:1}
+.ver-name{font-size:13px;font-weight:600;color:#fff}
+.ver-date{font-size:11px;color:var(--muted);margin-top:1px}
+.ver-score{font-size:14px;font-weight:700;font-family:var(--mono)}
+
+/* ── SEND TO COMPANY ── */
+.company-card{display:flex;align-items:center;gap:14px;padding:14px 16px;background:var(--card2);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;transition:all .2s}
+.company-card:hover{border-color:var(--border2)}
+.co-logo{width:40px;height:40px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.co-info{flex:1}
+.co-name{font-size:14px;font-weight:700;color:#fff}
+.co-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.co-status{font-size:11px;font-weight:600;padding:3px 9px;border-radius:100px}
+.co-sent{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.co-pending{background:rgba(245,158,11,.1);color:var(--yellow);border:1px solid rgba(245,158,11,.2)}
+
+/* ── TIMELINE ── */
+.tl{display:flex;flex-direction:column;gap:0}
+.tl-step{display:flex;gap:16px;padding-bottom:20px;position:relative}
+.tl-step:not(:last-child)::before{content:'';position:absolute;left:16px;top:36px;bottom:0;width:2px;background:var(--border)}
+.tl-dot{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;border:2px solid var(--border);background:var(--card2)}
+.tl-dot.done{background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4)}
+.tl-dot.active{background:rgba(0,212,255,.15);border-color:rgba(0,212,255,.4);animation:pulse-dot 2s infinite}
+@keyframes pulse-dot{0%,100%{box-shadow:0 0 0 0 rgba(0,212,255,.3)}50%{box-shadow:0 0 0 6px rgba(0,212,255,.0)}}
+.tl-body{flex:1;padding-top:6px}
+.tl-title{font-size:14px;font-weight:600;color:#fff}
+.tl-sub{font-size:12px;color:var(--muted);margin-top:2px}
+
+/* ── INTERVIEW ── */
+.q-card{background:var(--card2);border:1px solid var(--border2);border-radius:var(--r);padding:22px;margin-bottom:18px}
+.q-num{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--pulse);margin-bottom:8px;font-weight:600}
+.q-text{font-size:16px;color:#fff;font-weight:600;line-height:1.5}
+textarea.ans-box{width:100%;min-height:120px;background:var(--card);border:1px solid var(--border2);border-radius:10px;color:#fff;font-family:var(--ff);font-size:14px;padding:14px;resize:vertical;outline:none;transition:border-color .2s;line-height:1.6}
+textarea.ans-box:focus{border-color:var(--pulse)}
+.timer-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:16px}
+.timer-fg{height:100%;background:var(--pulse);border-radius:2px;transition:width .9s linear,background .3s}
+
+/* ── MARKET ── */
+.market-stat{text-align:center;padding:20px}
+.market-stat .num{font-size:36px;font-weight:800;color:#fff;letter-spacing:-1.5px;font-family:var(--mono)}
+.market-stat .lbl{font-size:12px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.market-stat .chg{font-size:13px;margin-top:6px;font-weight:600}
+.up{color:var(--green)}.dn{color:#f87171}
+
+/* ── TABLE ── */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);padding:10px 14px;border-bottom:1px solid var(--border);text-align:left;font-weight:600}
+.tbl td{font-size:13px;padding:12px 14px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:rgba(255,255,255,.02)}
+
+/* ── PROFILE ── */
+.pf-avatar{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--pulse),var(--glow));display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:800;color:#fff;flex-shrink:0}
+.pf-field{margin-bottom:14px}
+.pf-field label{display:block;font-size:12px;font-weight:600;color:var(--muted2);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.pf-field input,.pf-field select,.pf-field textarea{width:100%;padding:11px 14px;background:var(--card2);border:1px solid var(--border);border-radius:10px;color:#fff;font-size:14px;font-family:var(--ff);outline:none;transition:border-color .2s;-webkit-appearance:none}
+.pf-field input:focus,.pf-field select:focus,.pf-field textarea:focus{border-color:var(--pulse)}
+.pf-field input[readonly]{color:var(--muted);cursor:not-allowed}
+.pf-field select option{background:var(--card2)}
+.sbadge{font-size:12px;font-weight:600;padding:4px 12px;border-radius:100px}
+.s-app{background:rgba(34,197,94,.1);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.s-pen{background:rgba(245,158,11,.1);color:var(--yellow);border:1px solid rgba(245,158,11,.2)}
+
+/* ── TOAST ── */
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--card2);border:1px solid var(--border2);border-radius:10px;padding:12px 18px;font-size:13.5px;color:#fff;font-weight:500;opacity:0;transform:translateX(20px);transition:all .3s;pointer-events:none;max-width:340px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.toast.show{opacity:1;transform:translateX(0);pointer-events:auto}
+
+/* ── PROGRESS STEPS ── */
+.steps{display:flex;gap:0;margin-bottom:26px}
+.step{flex:1;text-align:center;position:relative;padding-bottom:12px}
+.step:not(:last-child)::after{content:'';position:absolute;top:14px;left:50%;width:100%;height:2px;background:var(--border)}
+.step.done::after,.step.active::after{background:var(--pulse)}
+.step-dot{width:28px;height:28px;border-radius:50%;border:2px solid var(--border);background:var(--card);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--muted);margin:0 auto 6px;position:relative;z-index:1;font-family:var(--mono)}
+.step.done .step-dot{background:var(--pulse);border-color:var(--pulse);color:#06060f}
+.step.active .step-dot{background:rgba(0,212,255,.15);border-color:var(--pulse);color:var(--pulse)}
+.step-label{font-size:10.5px;color:var(--muted);font-weight:500}
+.step.done .step-label,.step.active .step-label{color:var(--pulse)}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-bg.show{display:flex}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:16px;padding:28px;width:100%;max-width:500px;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:18px;font-weight:800;color:#fff;margin-bottom:6px}
+.modal p{font-size:14px;color:var(--muted);margin-bottom:20px;line-height:1.6}
+.modal-footer{display:flex;gap:10px;margin-top:20px}
+
+/* ── SCORE REPORT ── */
+.rep-score{font-size:64px;font-weight:800;letter-spacing:-3px;font-family:var(--mono);line-height:1}
+.rep-grade{font-size:14px;font-weight:600;margin-top:6px}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:3px}
+
+@media(max-width:900px){
+  .sb{display:none}.main{margin-left:0}
+  .g4{grid-template-columns:1fr 1fr}.g3{grid-template-columns:1fr 1fr}
+  .extracted-grid{grid-template-columns:1fr}
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<nav class="sb">
+  <a href="index.html" class="sb-logo"><span class="logo-text">Skill<span style="color:var(--pulse)">Pulse</span></span><small>Career Intelligence</small></a>
+  <div class="sb-nav">
+    <div class="ns">Main</div>
+    <div class="ni on" onclick="go('dashboard')"><span class="ni-ic">⚡</span> Dashboard</div>
+    <div class="ni" onclick="go('resume')"><span class="ni-ic">📄</span> Resume Suite</div>
+    <a href="virtual-interview.html" class="ni" id="intNav"><span class="ni-ic">🎤</span> Virtual Interview</a>
+    <a href="assessment.html" class="ni"><span class="ni-ic">🧠</span>AI Assessment</a>
+    <div class="ns">Practice</div>
+    <a href="mock-interview.html" class="ni"><span class="ni-ic">🎯</span>Mock Interview <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.2);margin-left:4px">FREE</span></a>
+    <a href="mock-assessment.html" class="ni"><span class="ni-ic">🧪</span>Mock Assessment <span style="font-size:9px;font-weight:800;padding:2px 6px;border-radius:5px;background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.2);margin-left:4px">FREE</span></a>
+    <div class="ns">Insights</div>
+    <div class="ni" onclick="go('report')"><span class="ni-ic">🏆</span> My Score Report</div>
+    <div class="ni" onclick="go('trends')"><span class="ni-ic">📈</span> Skill Trends</div>
+    <div class="ni" onclick="go('market')"><span class="ni-ic">🌍</span> Market Analytics</div>
+    <div class="ni" onclick="go('jobs')"><span class="ni-ic">💼</span> Job Openings</div>
+    <div class="ns">Account</div>
+    <div class="ni" onclick="go('profile')"><span class="ni-ic">👤</span> My Profile</div>
+    
+  </div>
+  <div class="sb-user">
+    <div class="av" id="avEl">?</div>
+    <div style="flex:1;min-width:0"><div class="un" id="unEl">Loading…</div><div class="ur" id="urEl">Candidate</div></div>
+    <button class="lout" onclick="doLogout()" title="Sign out">⏻</button>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <div class="tb-title" id="tb-title">Dashboard</div>
+    <div class="tb-right">
+      <span class="tb-badge" id="statusBadge">Loading…</span>
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="pg on" id="pg-dashboard">
+    <!-- Rejection notification banner -->
+    <div id="rejectionBanner" style="display:none;background:linear-gradient(135deg,rgba(239,68,68,.12),rgba(239,68,68,.06));border:1.5px solid rgba(239,68,68,.35);border-radius:14px;padding:20px 24px;margin-bottom:22px;position:relative">
+      <div style="display:flex;align-items:flex-start;gap:16px">
+        <div style="font-size:32px;flex-shrink:0">📩</div>
+        <div style="flex:1">
+          <div style="font-size:16px;font-weight:800;color:#f87171;margin-bottom:6px">Application Update — Not Shortlisted</div>
+          <div style="font-size:14px;color:#fca5a5;line-height:1.7;margin-bottom:14px">
+            Thank you for applying on <strong style="color:#fff">SkillPulse</strong>. After careful review, your application has not been shortlisted at this time. Don't be discouraged — keep improving and try again!
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button onclick="go('mock-interview')" style="padding:9px 18px;background:rgba(0,212,255,.12);color:#00d4ff;border:1px solid rgba(0,212,255,.3);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">🎤 Practice Mock Interview</button>
+            <button onclick="go('mock-assessment')" style="padding:9px 18px;background:rgba(124,58,237,.12);color:#a78bfa;border:1px solid rgba(124,58,237,.3);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">🧠 Try Mock Assessment</button>
+            <button onclick="go('resume')" style="padding:9px 18px;background:rgba(34,197,94,.1);color:#4ade80;border:1px solid rgba(34,197,94,.25);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit">📄 Improve Your Resume</button>
+          </div>
+        </div>
+        <button onclick="document.getElementById('rejectionBanner').style.display='none'" style="background:none;border:none;color:#f87171;font-size:20px;cursor:pointer;padding:0;line-height:1;flex-shrink:0">✕</button>
+      </div>
+    </div>
+    <div class="pg-header"><h2>Welcome back 👋</h2><p id="dashSub">Loading your profile…</p></div>
+    <div class="g4" style="margin-bottom:18px">
+      <div class="sc"><div class="sc-l">ATS Score</div><div class="sc-v" id="d-ats">—</div><div class="sc-c" id="d-ats-s">Upload resume</div></div>
+      <div class="sc"><div class="sc-l">Interview Score</div><div class="sc-v" id="d-int">—</div><div class="sc-c" id="d-int-s">Complete interview</div></div>
+      <div class="sc"><div class="sc-l">Resume Versions</div><div class="sc-v" id="d-vers">0</div><div class="sc-c">Saved versions</div></div>
+      <div class="sc"><div class="sc-l">Applications Sent</div><div class="sc-v" id="d-apps">0</div><div class="sc-c">Companies notified</div></div>
+    </div>
+
+    <div class="g2">
+      <div class="panel">
+        <div class="ptitle">🗺️ Application Journey</div>
+        <div class="tl" id="dashTl"></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle">⚡ Quick Actions</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <button class="btn bp bfull" onclick="go('resume')">📄 Upload & Analyze Resume</button>
+          <button class="btn bo bfull" onclick="location.href='virtual-interview.html'">🎤 Start Virtual Interview</button>
+          <button class="btn bo bfull" onclick="go('market')">📊 Explore Market Analytics</button>
+          <button class="btn bo bfull" onclick="go('trends')">📈 Browse Skill Trends</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RESUME SUITE ── -->
+  <div class="pg" id="pg-resume">
+    <div class="pg-header">
+      <h2>Resume Suite <span class="tag t-ai">🤖 AI Powered</span></h2>
+      <p>Upload, parse, score, version-control your resume — and send directly to companies.</p>
+    </div>
+
+    <!-- Progress Steps -->
+    <div class="steps" id="resumeSteps">
+      <div class="step active" id="st1"><div class="step-dot">1</div><div class="step-label">Upload</div></div>
+      <div class="step" id="st2"><div class="step-dot">2</div><div class="step-label">AI Parse</div></div>
+      <div class="step" id="st3"><div class="step-dot">3</div><div class="step-label">ATS Score</div></div>
+      <div class="step" id="st4"><div class="step-dot">4</div><div class="step-label">HR Review</div></div>
+      <div class="step" id="st5"><div class="step-dot">5</div><div class="step-label">Send to Companies</div></div>
+    </div>
+
+    <div class="g2">
+      <div>
+        <!-- Upload Panel -->
+        <div class="panel" id="uploadPanel">
+          <div class="ptitle">📤 Upload Resume</div>
+          <div class="file-preview" id="filePreview">
+            <div class="file-icon" id="fileIcon">📄</div>
+            <div class="file-info"><div class="file-name" id="fileName">resume.pdf</div><div class="file-meta" id="fileMeta">0 KB · PDF</div></div>
+            <button class="file-remove" onclick="resetResume()">✕</button>
+          </div>
+          <div class="upz" id="upzZone" onclick="document.getElementById('rf').click()"
+            ondragover="event.preventDefault();this.classList.add('drag')"
+            ondragleave="this.classList.remove('drag')"
+            ondrop="dropFile(event)">
+            <div class="upz-icon">📎</div>
+            <h3>Drop your resume here</h3>
+            <p>Supports PDF, DOCX, TXT · Max 10 MB</p>
+            <button class="btn bp" onclick="event.stopPropagation();document.getElementById('rf').click()">Choose File</button>
+            <input type="file" id="rf" accept=".pdf,.doc,.docx,.txt" onchange="pickFile(this)">
+          </div>
+          <div style="margin-top:14px;display:flex;gap:10px">
+            <button class="btn bp" id="anaBtn" onclick="runATS()" style="flex:1" disabled>🤖 Analyze Resume</button>
+          </div>
+        </div>
+
+        <!-- Versions Panel -->
+        <div class="panel">
+          <div class="ptitle">📚 Resume Versions <span class="tag t-new" id="verCount">0 saved</span></div>
+          <div class="ver-list" id="verList"><p style="color:var(--muted);font-size:13px">No versions yet. Analyze your first resume to save it.</p></div>
+        </div>
+      </div>
+
+      <div>
+        <!-- ATS Result -->
+        <div class="panel ats-res glow-border" id="atsRes">
+          <div class="ptitle">🎯 ATS Analysis Result <span class="tag t-ai">AI Scored</span></div>
+          <div class="ats-row">
+            <div class="score-ring-wrap">
+              <div class="circle" id="scoreCircle"><div class="ci2"><div class="cv" id="scoreNum">0</div><div class="cl">ATS Score</div></div></div>
+              <div style="font-size:12px;color:var(--muted);text-align:center;margin-top:6px" id="scoreGrade">—</div>
+            </div>
+            <div class="ats-cats">
+              <div class="cat-row"><div class="cat-hd"><span>Keyword Match</span><span id="pkw">0%</span></div><div class="bar-bg"><div class="bar-fg" id="bkw" style="background:var(--pulse)"></div></div></div>
+              <div class="cat-row"><div class="cat-hd"><span>Formatting</span><span id="pfmt">0%</span></div><div class="bar-bg"><div class="bar-fg" id="bfmt" style="background:var(--glow)"></div></div></div>
+              <div class="cat-row"><div class="cat-hd"><span>Experience Fit</span><span id="pexp">0%</span></div><div class="bar-bg"><div class="bar-fg" id="bexp" style="background:var(--green)"></div></div></div>
+              <div class="cat-row"><div class="cat-hd"><span>Skills Coverage</span><span id="psk">0%</span></div><div class="bar-bg"><div class="bar-fg" id="bsk" style="background:var(--yellow)"></div></div></div>
+              <div class="cat-row"><div class="cat-hd"><span>Action Verbs</span><span id="pav">0%</span></div><div class="bar-bg"><div class="bar-fg" id="bav" style="background:var(--fire)"></div></div></div>
+            </div>
+          </div>
+
+          <!-- 🆕 Extracted Fields -->
+          <div class="ptitle" style="margin-top:4px">🔍 Parsed Resume Data <span class="tag t-new">Auto-Extracted</span></div>
+          <div class="extracted-grid" id="extractedGrid">
+            <div class="ef-card"><div class="ef-label">👤 Name</div><div class="ef-value" id="ef-name">—</div></div>
+            <div class="ef-card"><div class="ef-label">📧 Email</div><div class="ef-value" id="ef-email">—</div></div>
+            <div class="ef-card"><div class="ef-label">📱 Phone</div><div class="ef-value" id="ef-phone">—</div></div>
+            <div class="ef-card"><div class="ef-label">🎓 Education</div><div class="ef-value" id="ef-edu">—</div></div>
+            <div class="ef-card"><div class="ef-label">💼 Experience</div><div class="ef-value" id="ef-exp">—</div></div>
+            <div class="ef-card"><div class="ef-label">📍 Location</div><div class="ef-value" id="ef-loc">—</div></div>
+            <div class="ef-card" style="grid-column:1/-1"><div class="ef-label">🛠 Skills Detected</div><div class="ef-value chips" id="ef-skills"></div></div>
+            <div class="ef-card" style="grid-column:1/-1"><div class="ef-label">🔧 Missing Keywords</div><div class="ef-value chips" id="ef-missing"></div></div>
+          </div>
+
+          <div style="background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.15);border-radius:10px;padding:14px;margin-bottom:18px">
+            <div style="font-size:12px;font-weight:700;color:var(--pulse);margin-bottom:5px">💡 AI Suggestion</div>
+            <div style="font-size:13px;color:var(--text);line-height:1.6" id="aiSug">—</div>
+          </div>
+
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <div id="submitHRWrap"><button class="btn bp" id="submitHRBtn" onclick="submitToHR()">📨 Submit to HR →</button></div>
+            <button class="btn bo" onclick="saveVersion()">💾 Save Version</button>
+            <button class="btn bo" onclick="resetResume()">🔄 Upload Different</button>
+          </div>
+        </div>
+
+        <!-- Send to Companies (shows after HR approved) -->
+        <div class="panel" id="sendCompPanel" style="display:none">
+          <div class="ptitle">🏢 Send to Companies <span class="tag t-pro">PRO</span></div>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Your resume is approved! Send it directly to matching companies.</p>
+          <div id="companyList"></div>
+          <button class="btn bp bfull" onclick="sendToAll()" style="margin-top:10px">🚀 Send to All Matched Companies</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── INTERVIEW ── -->
+  <div class="pg" id="pg-interview">
+    <div class="pg-header"><h2>Virtual Interview Room 🎤</h2><p>AI-powered interview with real-time scoring and instant feedback.</p></div>
+
+    <div id="iLocked" style="display:none">
+      <div class="panel" style="text-align:center;padding:40px">
+        <div style="font-size:48px;margin-bottom:16px">🔒</div>
+        <h3 style="font-size:18px;font-weight:700;color:#fff;margin-bottom:8px">Interview Locked</h3>
+        <p style="color:var(--muted);font-size:14px;max-width:360px;margin:0 auto 20px">Submit your resume first. HR must review and approve before you can access the interview room.</p>
+        <button class="btn bp" onclick="go('resume')">📄 Upload Resume</button>
+      </div>
+    </div>
+
+    <div id="iStart" style="display:none">
+      <div class="panel" style="max-width:620px">
+        <div class="ptitle">🎙️ Live AI Interview — Ready to Begin?</div>
+
+        <!-- AI Interviewer Avatar -->
+        <div style="background:linear-gradient(135deg,rgba(0,212,255,.06),rgba(124,58,237,.06));border:1px solid rgba(0,212,255,.15);border-radius:16px;padding:24px;margin-bottom:18px;text-align:center">
+          <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,rgba(0,212,255,.2),rgba(124,58,237,.2));border:2px solid rgba(0,212,255,.3);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 12px">🤖</div>
+          <div style="font-size:17px;font-weight:800;color:#fff;margin-bottom:3px">ARIA — Senior HR Director</div>
+          <div style="font-size:12px;color:var(--pulse);margin-bottom:16px">AI-powered · Speaks &amp; listens · Reports to HR</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+            <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px;text-align:center">
+              <div style="font-size:16px;font-weight:800;color:var(--pulse)" id="iRoleDisplay">—</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px">Role</div>
+            </div>
+            <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px;text-align:center">
+              <div style="font-size:16px;font-weight:800;color:var(--green)">Up to 15</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px">Questions</div>
+            </div>
+            <div style="background:rgba(255,255,255,.04);border-radius:8px;padding:10px;text-align:center">
+              <div style="font-size:16px;font-weight:800;color:#f87171">📤 HR</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px">Score Sent</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- How it works -->
+        <div style="background:var(--card2);border-radius:12px;padding:16px;margin-bottom:16px">
+          <div style="font-size:11px;color:var(--muted);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px;font-weight:700">📋 How this interview works</div>
+          <div style="display:flex;flex-direction:column;gap:10px;font-size:13px;color:var(--muted2)">
+            <div style="display:flex;align-items:flex-start;gap:10px"><span style="background:rgba(0,212,255,.12);color:var(--pulse);font-weight:800;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px">01</span><span>ARIA introduces herself and asks you to <strong style="color:#fff">introduce yourself</strong> — just like a real interview</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px"><span style="background:rgba(0,212,255,.12);color:var(--pulse);font-weight:800;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px">02</span><span>She <strong style="color:#fff">speaks each question aloud</strong> and waits for you to press the mic and answer</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px"><span style="background:rgba(0,212,255,.12);color:var(--pulse);font-weight:800;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px">03</span><span>Questions cover <strong style="color:#fff">personality, role-specific, behavioural &amp; situational</strong> — just like real company interviews</span></div>
+            <div style="display:flex;align-items:flex-start;gap:10px"><span style="background:rgba(0,212,255,.12);color:var(--pulse);font-weight:800;width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:11px">04</span><span>Your <strong style="color:#fff">score, transcript &amp; AI evaluation</strong> are sent directly to HR when done</span></div>
+          </div>
+        </div>
+
+        <div style="background:rgba(234,179,8,.05);border:1px solid rgba(234,179,8,.15);border-radius:10px;padding:12px;margin-bottom:18px;font-size:12px;color:#fde68a;line-height:1.7;display:flex;gap:8px">
+          <span>⚠️</span><span><strong>This is a real interview</strong> — your responses are recorded, evaluated by AI, and sent to HR. Be in a quiet place. Once started, cannot be paused.</span>
+        </div>
+        <button class="btn bp bfull" id="startBtn" onclick="startInterview()">🎙️ Begin Live Interview with ARIA →</button>
+      </div>
+    </div>
+
+    <div id="iRoom" style="display:none;max-width:700px">
+
+      <!-- Top progress row -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div style="font-size:13px;color:var(--muted)">
+          Question <strong id="qNum" style="color:#fff;font-size:16px">—</strong>
+          <span style="color:var(--muted)"> of </span>
+          <strong id="qTotal" style="color:#fff">—</strong>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:13px;color:var(--muted)">⏱</span>
+          <div style="font-size:18px;font-weight:800;font-family:monospace;color:var(--pulse)" id="timerDisp">—</div>
+        </div>
+      </div>
+      <div class="timer-bar" style="margin-bottom:16px"><div class="timer-fg" id="timerFg" style="width:100%"></div></div>
+
+      <!-- Q progress dots -->
+      <div id="iQDots" style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:18px"></div>
+
+      <!-- ARIA conversation card -->
+      <div style="background:var(--card);border:1px solid rgba(0,212,255,.12);border-radius:18px;padding:22px;margin-bottom:14px;position:relative;overflow:hidden">
+        <div style="position:absolute;inset:0;background:radial-gradient(circle at 50% 0%,rgba(0,212,255,.04) 0%,transparent 60%);pointer-events:none"></div>
+
+        <!-- ARIA header -->
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:18px">
+          <div style="position:relative;flex-shrink:0">
+            <div id="avatarCircle" style="width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,rgba(0,212,255,.2),rgba(124,58,237,.2));border:2px solid rgba(0,212,255,.25);display:flex;align-items:center;justify-content:center;font-size:24px;transition:border-color .3s">🤖</div>
+            <div id="avatarRing" style="position:absolute;inset:-5px;border-radius:50%;border:2px solid transparent;pointer-events:none;transition:all .3s"></div>
+          </div>
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:800;color:#fff">ARIA — Senior HR Director</div>
+            <div id="ariaStatus" style="font-size:12px;color:var(--muted2);margin-top:2px;display:flex;align-items:center;gap:5px">
+              <span id="statusDot" style="width:6px;height:6px;border-radius:50%;background:var(--muted);display:inline-block;transition:background .3s"></span>
+              <span id="statusText">Ready</span>
+            </div>
+          </div>
+          <button id="replayBtn" onclick="replayQuestion()" style="padding:7px 12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:9px;color:var(--muted2);font-size:12px;cursor:pointer;font-family:var(--ff);transition:all .2s;display:flex;align-items:center;gap:5px;white-space:nowrap">
+            🔊 Replay
+          </button>
+        </div>
+
+        <!-- ARIA speech bubble -->
+        <div id="ariaSpeechBubble" style="background:var(--card2);border:1px solid rgba(0,212,255,.1);border-radius:12px;padding:16px;font-size:15px;color:#fff;line-height:1.75;min-height:60px;position:relative">
+          <div id="qText">Preparing your interview…</div>
+          <div id="qBadges" style="display:flex;gap:7px;margin-top:12px"></div>
+        </div>
+        <div id="qTip" style="margin-top:10px;padding:9px 13px;background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.12);border-radius:9px;font-size:12px;color:#c4b5fd;line-height:1.6;display:none"></div>
+        <!-- Live backchannel bubble — appears while candidate speaks -->
+        <div id="ariaBubbleLive" style="margin-top:10px;padding:9px 14px;border-radius:10px;border:1px solid transparent;font-size:13px;font-weight:600;color:#fff;opacity:0;transform:translateY(-8px);transition:opacity .35s ease,transform .35s ease;pointer-events:none;min-height:0;display:flex;align-items:center;gap:8px">
+          <span style="font-size:15px">🤖</span>
+          <span id="ariaBubbleText"></span>
+        </div>
+      </div>
+
+      <!-- Candidate response section -->
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:22px;margin-bottom:14px">
+        <div style="font-size:12px;font-weight:700;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+          <span>🎙️ Your Answer</span>
+          <span id="wordCount" style="font-size:12px;font-weight:600;color:var(--muted);text-transform:none;letter-spacing:0">0 words</span>
+        </div>
+
+        <!-- Waveform + Mic -->
+        <div style="display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:16px">
+          <div id="waveform" style="display:flex;align-items:center;gap:3px;height:32px;opacity:.35;transition:opacity .3s">
+            <div class="wvbar" style="width:3px;border-radius:3px;background:var(--pulse);height:5px;transition:height .08s ease"></div>
+            <div class="wvbar" style="width:3px;border-radius:3px;background:var(--pulse);height:10px;transition:height .08s ease"></div>
+            <div class="wvbar" style="width:3px;border-radius:3px;background:var(--pulse);height:18px;transition:height .08s ease"></div>
+            <div class="wvbar" style="width:3px;border-radius:3px;background:var(--pulse);height:7px;transition:height .08s ease"></div>
+            <div class="wvbar" style="width:3px;border-radius:3px;background:var(--pulse);height:24px;transition:height .08s ease"></div>
+            <div class="wvbar" style="width:3px;border-radius:3px;background:var(--pulse);height:12px;transition:height .08s ease"></div>
+            <div class="wvbar" style="width:3px;border-radius:3px;background:var(--pulse);height:20px;transition:height .08s ease"></div>
+            <div class="wvbar" style="width:3px;border-radius:3px;background:var(--pulse);height:8px;transition:height .08s ease"></div>
+            <div class="wvbar" style="width:3px;border-radius:3px;background:var(--pulse);height:26px;transition:height .08s ease"></div>
+            <div class="wvbar" style="width:3px;border-radius:3px;background:var(--pulse);height:14px;transition:height .08s ease"></div>
+            <div class="wvbar" style="width:3px;border-radius:3px;background:var(--pulse);height:7px;transition:height .08s ease"></div>
+          </div>
+          <button id="micBtn" onclick="toggleMic()" style="width:72px;height:72px;border-radius:50%;border:2px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);font-size:26px;cursor:pointer;transition:all .3s;display:flex;align-items:center;justify-content:center;outline:none">🎙️</button>
+          <div id="micLabel" style="font-size:13px;font-weight:600;color:var(--muted2);text-align:center">Press mic to speak your answer</div>
+        </div>
+
+        <!-- Live transcript -->
+        <div id="ansBox" contenteditable="true"
+          style="background:var(--card2);border:1.5px solid var(--border);border-radius:11px;padding:14px;min-height:100px;max-height:180px;overflow-y:auto;font-size:14px;color:#fff;line-height:1.75;outline:none;transition:border-color .2s;font-family:var(--ff)"
+          data-empty="true"
+          onkeydown="this.removeAttribute('data-empty')"
+          oninput="syncWordCount()"></div>
+        <div id="ansHint" style="margin-top:7px;font-size:12px;color:var(--muted);min-height:18px"></div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:10px">
+        <button class="btn bp" style="flex:1;font-size:15px" id="nextBtn" onclick="nextQ()">Submit Answer →</button>
+        <button class="btn bo" onclick="skipQ()" style="opacity:.75">Skip ⏩</button>
+      </div>
+    </div>
+
+    <!-- Evaluating overlay -->
+    <div id="iEval" style="display:none;max-width:480px;text-align:center;padding:60px 20px">
+      <div style="font-size:56px;margin-bottom:20px;animation:pulse 1.5s ease infinite">🤖</div>
+      <div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:10px">AI is evaluating your answers…</div>
+      <div style="font-size:14px;color:var(--muted);margin-bottom:28px">Analysing depth, clarity, technical accuracy and relevance to <span id="evalRole" style="color:var(--pulse);font-weight:600"></span></div>
+      <div style="height:4px;background:var(--border);border-radius:4px;overflow:hidden;max-width:280px;margin:0 auto">
+        <div id="evalBar" style="height:100%;background:linear-gradient(90deg,var(--pulse),var(--glow));border-radius:4px;width:0%;transition:width .4s ease"></div>
+      </div>
+      <div id="evalStatus" style="font-size:12px;color:var(--muted);margin-top:12px">Preparing evaluation…</div>
+    </div>
+
+    <div id="iDone" style="display:none">
+      <!-- Score + feedback rendered here by JS -->
+    </div>
+  </div>
+
+  <!-- ── SCORE REPORT ── -->
+  <div class="pg" id="pg-report">
+    <div class="pg-header"><h2>My Score Report 🏆</h2><p>Comprehensive analysis of your ATS and interview performance.</p></div>
+    <div id="repEmpty" style="display:none">
+      <div class="panel" style="text-align:center;padding:40px">
+        <div style="font-size:48px;margin-bottom:14px">📊</div>
+        <p style="color:var(--muted);font-size:14px">Complete the virtual interview to see your full score report.</p>
+        <button class="btn bp" style="margin-top:16px" onclick="go('interview')">🎤 Take Interview</button>
+      </div>
+    </div>
+    <div id="repContent" style="display:none">
+      <div class="g3" style="margin-bottom:18px">
+        <div class="sc" style="text-align:center">
+          <div class="sc-l">ATS Score</div>
+          <div class="rep-score" id="rep-ats" style="color:var(--pulse)">—</div>
+          <div class="rep-grade" id="rep-ats-g" style="color:var(--muted)">—</div>
+        </div>
+        <div class="sc" style="text-align:center">
+          <div class="sc-l">Interview Score</div>
+          <div class="rep-score" id="rep-int" style="color:var(--green)">—</div>
+          <div class="rep-grade" id="rep-int-g" style="color:var(--muted)">—</div>
+        </div>
+        <div class="sc" style="text-align:center">
+          <div class="sc-l">Overall Rating</div>
+          <div class="rep-score" id="rep-overall" style="color:var(--yellow)">—</div>
+          <div class="rep-grade" id="rep-overall-g" style="color:var(--muted)">—</div>
+        </div>
+      </div>
+      <div class="g2">
+        <div class="panel"><div class="ptitle">📊 Performance Breakdown</div><canvas id="repChart" height="220"></canvas></div>
+        <div class="panel">
+          <div class="ptitle">🏢 Matched Companies</div>
+          <div id="companyRecs"></div>
+          <div style="margin-top:14px"><button class="btn bp bfull" onclick="go('resume')">📨 Send Resume to Companies</button></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ptitle">🚀 Skills to Learn</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px" id="skillsLearn"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SKILL TRENDS ── -->
+  <div class="pg" id="pg-trends">
+    <div class="pg-header"><h2>Skill Trends 📈</h2><p>Real-time demand data across 6,000+ job postings.</p></div>
+    <div class="g2">
+      <div class="panel"><div class="ptitle">🔥 Most In-Demand Skills</div><canvas id="trendChart" height="260"></canvas></div>
+      <div class="panel"><div class="ptitle">📉 Declining Skills</div><canvas id="declChart" height="260"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">📋 Full Skill Demand Table</div>
+      <table class="tbl">
+        <thead><tr><th>#</th><th>Skill</th><th>Demand Score</th><th>YoY Change</th><th>Avg Salary</th><th>Category</th></tr></thead>
+        <tbody id="trendTable"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── MARKET ANALYTICS ── -->
+  <div class="pg" id="pg-market">
+    <div class="pg-header"><h2>Market Analytics 🌍</h2><p>Live intelligence from global job markets.</p></div>
+    <div class="g4" style="margin-bottom:18px">
+      <div class="sc market-stat"><div class="num">847K</div><div class="lbl">Open Roles</div><div class="chg up">↑ 12% this month</div></div>
+      <div class="sc market-stat"><div class="num">₹18L</div><div class="lbl">Avg Salary (India)</div><div class="chg up">↑ 8.4% YoY</div></div>
+      <div class="sc market-stat"><div class="num">6.2K</div><div class="lbl">Portals Tracked</div><div class="chg up">↑ 340 new</div></div>
+      <div class="sc market-stat"><div class="num">94%</div><div class="lbl">AI Role Growth</div><div class="chg up">↑ Explosive</div></div>
+    </div>
+    <div class="g2">
+      <div class="panel"><div class="ptitle">🌏 Top Hiring Cities</div><canvas id="cityChart" height="240"></canvas></div>
+      <div class="panel"><div class="ptitle">📊 Role Distribution</div><canvas id="roleChart" height="240"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">🏢 Top Hiring Companies</div>
+      <table class="tbl">
+        <thead><tr><th>Company</th><th>Open Roles</th><th>Top Skill</th><th>Avg Salary</th><th>Growth</th></tr></thead>
+        <tbody>
+          <tr><td>🟦 Microsoft</td><td>2,340</td><td>Azure / .NET</td><td>₹28L</td><td class="up">↑ 18%</td></tr>
+          <tr><td>🔴 Google</td><td>1,890</td><td>Python / GCP</td><td>₹32L</td><td class="up">↑ 22%</td></tr>
+          <tr><td>🟠 Amazon</td><td>3,120</td><td>AWS / Java</td><td>₹26L</td><td class="up">↑ 15%</td></tr>
+          <tr><td>🔵 Meta</td><td>980</td><td>React / PyTorch</td><td>₹34L</td><td class="dn">↓ 4%</td></tr>
+          <tr><td>🟣 Infosys</td><td>4,500</td><td>Java / Spring</td><td>₹12L</td><td class="up">↑ 6%</td></tr>
+          <tr><td>🔵 TCS</td><td>5,200</td><td>Full Stack</td><td>₹11L</td><td class="up">↑ 9%</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── JOB OPENINGS ── -->
+  <div class="pg" id="pg-jobs">
+    <div class="pg-header"><h2>Job Openings 💼</h2><p>Browse open positions posted by HR</p></div>
+    <div id="userJobsList"><div class="panel" style="text-align:center;padding:40px;color:var(--muted)">Loading job openings…</div></div>
+  </div>
+
+    <!-- ── PROFILE ── -->
+  <div class="pg" id="pg-profile">
+    <div class="pg-header"><h2>My Profile 👤</h2><p>Manage your personal information and preferences.</p></div>
+    <div class="g2">
+      <div class="panel">
+        <div class="ptitle">Personal Information</div>
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:22px">
+          <div class="pf-avatar" id="pfAv">?</div>
+          <div><div style="font-size:16px;font-weight:700;color:#fff" id="pfName">—</div><div style="font-size:13px;color:var(--muted);margin-top:2px" id="pfRole">—</div></div>
+        </div>
+        <div class="g2">
+          <div class="pf-field"><label>First Name</label><input type="text" id="pFN" /></div>
+          <div class="pf-field"><label>Last Name</label><input type="text" id="pLN" /></div>
+        </div>
+        <div class="pf-field"><label>Email</label><input type="text" id="pEmail" readonly /></div>
+        <div class="pf-field">
+          <label>Target Role</label>
+          <select id="pRole">
+            <option>Software Engineer</option><option>Data Scientist</option><option>DevOps / Cloud Engineer</option>
+            <option>Frontend Developer</option><option>Backend Developer</option><option>Full Stack Developer</option>
+            <option>ML / AI Engineer</option><option>Product Manager</option><option>Cybersecurity Analyst</option><option>Other</option>
+          </select>
+        </div>
+        <div class="pf-field"><label>Bio</label><textarea id="pBio" style="min-height:80px" placeholder="Tell companies about yourself…"></textarea></div>
+        <button class="btn bp" onclick="saveProfile()">💾 Save Profile</button>
+
+        <!-- DANGER ZONE -->
+        <div style="margin-top:28px;padding:16px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:12px">
+          <div style="font-size:12px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">⚠️ Danger Zone</div>
+          <p style="font-size:13px;color:var(--muted2);margin-bottom:12px">Permanently delete your account and all data. This cannot be undone.</p>
+          <button class="btn" onclick="confirmDeleteAccount()" style="background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.3);font-size:13px;padding:9px 18px">
+            🗑️ Delete My Account
+          </button>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ptitle">Application Status</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="padding:14px;background:var(--card2);border-radius:10px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">HR Status</div>
+            <div class="sbadge" id="pResStatus">Not Uploaded</div>
+          </div>
+          <div style="padding:14px;background:var(--card2);border-radius:10px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">ATS Score</div>
+            <div style="font-size:24px;font-weight:800;color:#fff;font-family:var(--mono)" id="pAts">—</div>
+          </div>
+          <div style="padding:14px;background:var(--card2);border-radius:10px">
+            <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Interview Score</div>
+            <div style="font-size:24px;font-weight:800;color:#fff;font-family:var(--mono)" id="pInt">—</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- SEND TO COMPANY MODAL -->
+<div class="modal-bg" id="sendModal">
+  <div class="modal">
+    <h3>🚀 Send Resume to Company</h3>
+    <p id="sendModalDesc">Sending your resume to this company will notify their HR team with your profile and ATS score.</p>
+    <div style="background:var(--card2);border-radius:10px;padding:14px;margin-bottom:10px" id="sendModalPreview"></div>
+    <div class="modal-footer">
+      <button class="btn bp" style="flex:1" onclick="confirmSend()">Confirm Send →</button>
+      <button class="btn bo" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── go() stub available immediately for onclick handlers ──
+function go(id) {
+  // If APP not ready yet, queue it
+  if (typeof APP === 'undefined' || !APP.profile) {
+    window._pendingGo = id;
+    return;
+  }
+  _go(id);
+}
+// ── KILL SPEECH ON PAGE UNLOAD / REFRESH ──
+(function() {
+  const kill = () => { try { window.speechSynthesis.cancel(); } catch(e) {} };
+  window.addEventListener('beforeunload', kill);
+  window.addEventListener('pagehide', kill);
+  document.addEventListener('visibilitychange', () => { if (document.hidden) kill(); });
+  kill(); // kill any leftover speech from previous load
+})();
+
+const SB_URL = "https://egfysmqrdgdukmgpqdaa.supabase.co";
+const GROQ_API_KEY = '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'; // ← get free key from console.groq.com
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnZnlzbXFyZGdkdWttZ3BxZGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNjcwNzksImV4cCI6MjA4ODY0MzA3OX0.dzafzM8gUgz8-57CWW7symF5BZ3KS8qLN7OadOWRpfs";
+const sb = supabase.createClient(SB_URL, SB_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    storageKey: 'skillpulse_auth'
+  }
+});
+const QUESTIONS = {
+  "Software Engineer":["Describe a complex system you designed from scratch. What trade-offs did you make?","How do you ensure code quality in a fast-moving team?","Explain the difference between REST and GraphQL. When would you choose one?","Describe a time you optimised a slow system or query. What was the outcome?","How do you approach debugging a production issue with no clear logs?"],
+  "Data Scientist":["Describe a model you built end-to-end. What was the business impact?","How do you handle class imbalance in a classification problem?","Explain the bias-variance trade-off with a real example.","How do you communicate model results to non-technical stakeholders?","Describe a time your model failed in production. How did you fix it?"],
+  "default":["Tell me about a challenging project you completed. What was your role?","How do you prioritise tasks when everything seems urgent?","Describe a time you had to learn a new technology quickly.","How do you handle disagreements with teammates?","What's your greatest professional achievement so far?"]
+};
+
+const COMPANIES = [
+  {name:"Google",logo:"🔴",domain:"Engineering",match:95,salary:"₹32L"},
+  {name:"Microsoft",logo:"🟦",domain:"Cloud / Full Stack",match:91,salary:"₹28L"},
+  {name:"Amazon",logo:"🟠",domain:"Backend / AWS",match:88,salary:"₹26L"},
+  {name:"Infosys",logo:"🟣",domain:"Enterprise Tech",match:82,salary:"₹12L"},
+  {name:"Flipkart",logo:"🔵",domain:"E-commerce Tech",match:79,salary:"₹20L"},
+  {name:"Razorpay",logo:"💙",domain:"Fintech / Backend",match:76,salary:"₹22L"},
+];
+
+const APP = {
+  user: null, profile: null,
+  currentFile: null,
+  versions: [],
+  sentCompanies: [],
+  answers: [], curQ: 0, timer: null,
+  pendingSendCompany: null,
+  repChart: null,
+};
+
+/* ══ INIT ══ */
+(async () => {
+  // ── Step 1: get session (fast, local) ──
+  let sessionData;
+  try {
+    const { data } = await Promise.race([
+      sb.auth.getSession(),
+      new Promise((_, r) => setTimeout(() => r(new Error('session timeout')), 3000))
+    ]);
+    sessionData = data;
+  } catch(e) {
+    location.href = 'login.html'; return;
+  }
+  if (!sessionData?.session) { location.href = 'login.html'; return; }
+  APP.user = sessionData.session.user;
+
+  // ── Step 2: Show cached profile IMMEDIATELY while DB loads ──
+  const cached = localStorage.getItem('sp_profile_' + APP.user.id);
+  if (cached) {
+    try {
+      APP.profile = JSON.parse(cached);
+      renderUI(); // render instantly from cache — page is usable right away
+      if (window._pendingGo) { const pg = window._pendingGo; window._pendingGo = null; _go(pg); }
+    } catch(e) {}
+  }
+
+  // ── Step 3: Load fresh profile from DB — no timeout on hosted app ──
+  let prof = null;
+  try {
+    const { data: p, error } = await sb.from('profiles').select('*').eq('id', APP.user.id).single();
+    if (!error && p) prof = p;
+    else console.warn('Profile load:', error?.message);
+  } catch(e) { console.warn('Profile fetch failed:', e.message); }
+
+
+  // Merge fresh DB data into profile
+  if (prof) {
+    APP.profile = prof;
+    try { localStorage.setItem('sp_profile_' + APP.user.id, JSON.stringify(prof)); } catch(e) {}
+  } else if (!APP.profile) {
+    // Still no profile at all — build from auth metadata as absolute last resort
+    const meta = APP.user.user_metadata || {};
+    APP.profile = {
+      id: APP.user.id, email: APP.user.email,
+      first_name: meta.first_name || (meta.full_name||'').split(' ')[0] || APP.user.email.split('@')[0],
+      last_name: meta.last_name || (meta.full_name||'').split(' ').slice(1).join(' ') || '',
+      target_role: meta.target_role || 'Software Engineer',
+      hr_status: 'pending', interview_unlocked: false, assessment_unlocked: false,
+      ats_score: null, interview_score: null,
+    };
+    sb.from('profiles').upsert(APP.profile).then(()=>{}).catch(()=>{});
+  }
+
+  // Always use DB value — never restore stale hr_status from localStorage
+
+  // Load versions and sent companies from localStorage
+  const savedVers = localStorage.getItem(`sp_versions_${APP.user.id}`);
+  if (savedVers) try { APP.versions = JSON.parse(savedVers); } catch(e) {}
+  const savedSent = localStorage.getItem(`sp_sent_${APP.user.id}`);
+  if (savedSent) try { APP.sentCompanies = JSON.parse(savedSent); } catch(e) {}
+
+  renderUI();   // re-render with fresh data (no flicker since structure is same)
+  requestAnimationFrame(() => initCharts()); // charts after paint — non-blocking
+
+  // ── Safety net: if page still says "Loading…" after 5s, force render ──
+  setTimeout(() => {
+    const sub = document.getElementById('dashSub');
+    if (sub && sub.textContent.includes('Loading')) {
+      const cached = localStorage.getItem('sp_profile_' + APP.user.id);
+      if (cached && !APP.profile) {
+        try { APP.profile = JSON.parse(cached); renderUI(); } catch(e) {}
+      } else if (!APP.profile) {
+        if (sub) sub.textContent = 'Welcome! Please upload your resume to get started.';
+      }
+    }
+  }, 5000);
+
+  /* Realtime listener for profile changes */
+  sb.channel(`profile-${APP.user.id}`)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${APP.user.id}` }, payload => {
+      const prev = { ...APP.profile };
+      APP.profile = { ...APP.profile, ...payload.new };
+      renderUI();
+      if (!prev.interview_unlocked && payload.new.interview_unlocked) {
+        toast('🎉 HR approved your resume! Virtual Interview is now unlocked.', 6000);
+      }
+      if (!prev.assessment_unlocked && payload.new.assessment_unlocked) {
+        toast('🧠 AI Assessment has been unlocked for you!', 6000);
+      }
+      if (payload.new.hr_status === 'rejected' && prev.hr_status !== 'rejected') {
+        toast('📩 Your application was not shortlisted. Check your dashboard for details.', 8000);
+      }
+    }).subscribe();
+
+  // Polling fallback every 8s — catches HR changes even if realtime fails (important on hosted apps)
+  setInterval(async () => {
+    try {
+      const { data: fresh } = await sb.from('profiles').select('hr_status,interview_unlocked,interview_score,assessment_unlocked,assessment_score').eq('id', APP.user.id).single();
+      if (!fresh) return;
+      const prev = { ...APP.profile };
+      APP.profile.hr_status = fresh.hr_status;
+      APP.profile.interview_unlocked = fresh.interview_unlocked;
+      APP.profile.interview_score = fresh.interview_score;
+      APP.profile.assessment_unlocked = fresh.assessment_unlocked;
+      APP.profile.assessment_score = fresh.assessment_score;
+      try { localStorage.setItem('sp_profile_' + APP.user.id, JSON.stringify(APP.profile)); } catch(e) {}
+      if (!prev.interview_unlocked && fresh.interview_unlocked) {
+        renderUI();
+        toast('🎉 HR approved your resume! Virtual Interview is now unlocked.', 6000);
+        setTimeout(() => _go && _go('interview'), 1500);
+      } else if (!prev.assessment_unlocked && fresh.assessment_unlocked) {
+        renderUI();
+        toast('🧠 AI Assessment has been unlocked for you!', 6000);
+      } else if (prev.hr_status !== fresh.hr_status) {
+        renderUI();
+        if(fresh.hr_status === 'rejected' && prev.hr_status !== 'rejected') {
+          // Show rejection toast
+          toast('📩 Your application status has been updated. Please check your dashboard.', 8000);
+        } else if(fresh.hr_status === 'approved' && prev.hr_status !== 'approved') {
+          toast('🎉 Congratulations! Your application has been approved!', 8000);
+        }
+      }
+    } catch(e) {}
+  }, 8000); // poll every 8s
+})();
+
+/* ══ RENDER UI ══ */
+function renderUI() {
+  const p = APP.profile;
+  const name = (p.first_name || '') + ' ' + (p.last_name || '');
+  const _fn = (p.first_name||'').trim();
+  const _ln = (p.last_name||'').trim();
+  const initials = ((_fn[0]||(_ln[0]||'?')) + (_ln[0]||'')).toUpperCase() || '?';
+
+  document.getElementById('avEl').textContent = initials;
+  document.getElementById('unEl').textContent = name.trim() || p.email;
+  document.getElementById('urEl').textContent = p.target_role || 'Candidate';
+  document.getElementById('dashSub').textContent = `Hello, ${p.first_name || 'there'}! Here's your career snapshot.`;
+
+  // Status badge
+  const badges = { pending:'📋 Upload Resume to Begin', submitted:'⏳ Submitted — Awaiting HR Review', approved:'✅ Approved by HR', rejected:'❌ Rejected by HR' };
+  const badgeEl = document.getElementById('statusBadge');
+  badgeEl.textContent = badges[p.hr_status] || '📋 Upload Resume to Begin';
+  badgeEl.className = `tb-badge ${p.hr_status || 'pending'}`;
+
+  // Show/hide rejection banner
+  const banner = document.getElementById('rejectionBanner');
+  if(banner) {
+    if(p.hr_status === 'rejected') {
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+
+  // Stats
+  const ats = p.ats_score; const intScore = p.interview_score;
+  document.getElementById('d-ats').textContent = ats ? ats + '%' : '—';
+  document.getElementById('d-ats-s').textContent = ats ? (ats >= 80 ? '✅ Strong Match' : ats >= 65 ? '⚠ Good' : '❌ Needs work') : 'Upload resume';
+  document.getElementById('d-int').textContent = intScore ? intScore + '%' : '—';
+  document.getElementById('d-int-s').textContent = intScore ? (intScore >= 80 ? '✅ Excellent' : '⚠ Good effort') : 'Complete interview';
+  document.getElementById('d-vers').textContent = APP.versions.length;
+  document.getElementById('d-apps').textContent = APP.sentCompanies.length;
+
+  // Timeline
+  const steps = [
+    { title: 'Resume Uploaded', sub: ats ? `ATS Score: ${ats}%` : 'Not yet', done: !!ats },
+    { title: 'Submitted to HR', sub: p.hr_status === 'submitted' || p.hr_status === 'approved' ? 'Submitted ✓' : 'Pending submission', done: p.hr_status === 'submitted' || p.hr_status === 'approved' || p.hr_status === 'rejected' },
+    { title: 'HR Review', sub: p.hr_status === 'approved' ? '✅ Approved' : p.hr_status === 'rejected' ? '❌ Rejected' : '⏳ Awaiting', done: p.hr_status === 'approved' },
+    { title: 'Interview', sub: intScore ? `Score: ${intScore}%` : 'Not started', done: !!intScore },
+    { title: 'Applied to Companies', sub: APP.sentCompanies.length > 0 ? `${APP.sentCompanies.length} companies notified` : 'Not yet', done: APP.sentCompanies.length > 0 },
+  ];
+  document.getElementById('dashTl').innerHTML = steps.map((s, i) => `
+    <div class="tl-step">
+      <div class="tl-dot ${s.done ? 'done' : i === steps.findIndex(x => !x.done) ? 'active' : ''}">${s.done ? '✓' : i + 1}</div>
+      <div class="tl-body"><div class="tl-title">${s.title}</div><div class="tl-sub">${s.sub}</div></div>
+    </div>`).join('');
+
+  // Resume steps progress
+  const stepsArr = [!!ats, !!ats, !!ats, p.hr_status === 'approved', APP.sentCompanies.length > 0];
+  stepsArr.forEach((done, i) => {
+    const el = document.getElementById(`st${i + 1}`);
+    if (!el) return;
+    el.className = `step ${done ? 'done' : i === stepsArr.findIndex(x => !x) ? 'active' : ''}`;
+  });
+
+  // Interview nav
+  const intNav = document.getElementById('intNav');
+  if (intNav) {
+    intNav.style.opacity = p.interview_unlocked ? '1' : '.5';
+    intNav.title = p.interview_unlocked ? 'Interview unlocked!' : 'Awaiting HR approval';
+  }
+
+  // Send to companies panel
+  const panel = document.getElementById('sendCompPanel');
+  if (p.hr_status === 'approved') {
+    panel.style.display = 'block';
+    renderCompanyList();
+  }
+
+  // Profile page
+  document.getElementById('pfAv').textContent = initials;
+  document.getElementById('pfName').textContent = name.trim();
+  document.getElementById('pfRole').textContent = p.target_role || '—';
+  document.getElementById('pFN').value = p.first_name || '';
+  document.getElementById('pLN').value = p.last_name || '';
+  document.getElementById('pEmail').value = p.email || '';
+  document.getElementById('pRole').value = p.target_role || 'Software Engineer';
+  document.getElementById('pBio').value = p.bio || localStorage.getItem('sp_bio_' + APP.user.id) || '';
+  document.getElementById('pAts').textContent = ats ? ats + '%' : '—';
+  document.getElementById('pInt').textContent = intScore ? intScore + '%' : '—';
+  document.getElementById('pResStatus').innerHTML = ats
+    ? `<span class="sbadge s-app">✅ ATS: ${ats}% · ${p.hr_status}</span>`
+    : '<span class="sbadge s-pen">Not Uploaded</span>';
+
+  // Versions list
+  renderVersions();
+
+  // Report
+  if (intScore) showReport(intScore);
+  // If score report tab is currently visible, refresh it
+  const reportPg = document.getElementById('pg-report');
+  if (reportPg && reportPg.classList.contains('on')) renderScoreReport();
+}
+
+/* ══ NAVIGATION ══ */
+function _go(id) {
+  document.querySelectorAll('.pg').forEach(p => { p.classList.remove('on'); p.style.display = 'none'; });
+  const target = document.getElementById('pg-' + id);
+  if (target) { target.style.display = 'block'; void target.offsetHeight; target.classList.add('on'); }
+  // Highlight active nav item by matching onclick attribute
+  document.querySelectorAll('.ni').forEach(n => {
+    const oc = n.getAttribute('onclick') || '';
+    n.classList.toggle('on', oc.includes("'" + id + "'"));
+  });
+  const titles = { dashboard:'Dashboard', resume:'Resume Suite', interview:'Virtual Interview', report:'Score Report', trends:'Skill Trends', market:'Market Analytics', profile:'My Profile', jobs:'Job Openings' };
+  const tb = document.getElementById('tb-title'); if(tb) tb.textContent = titles[id] || id;
+  const main = document.querySelector('.main'); if(main) main.scrollTop = 0;
+  if (id === 'interview') renderInterviewPage();
+  if (id === 'jobs') loadUserJobs();
+  if (id === 'report') renderScoreReport();
+}
+
+/* ══ FILE HANDLING ══ */
+function dropFile(e) { e.preventDefault(); document.getElementById('upzZone').classList.remove('drag'); processFile(e.dataTransfer.files[0]); }
+function pickFile(inp) { if (inp.files[0]) processFile(inp.files[0]); }
+
+function processFile(f) {
+  const allowed = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/msword', 'text/plain'];
+  if (!allowed.includes(f.type) && !f.name.match(/\.(pdf|docx?|txt)$/i)) { toast('❌ Please upload a PDF, DOCX, or TXT file.'); return; }
+  if (f.size > 10 * 1024 * 1024) { toast('❌ File too large. Max 10 MB.'); return; }
+  APP.currentFile = f;
+  const icons = { 'application/pdf': '📕', 'text/plain': '📝' };
+  const icon = f.name.endsWith('.docx') || f.name.endsWith('.doc') ? '📘' : (icons[f.type] || '📄');
+  document.getElementById('fileIcon').textContent = icon;
+  document.getElementById('fileName').textContent = f.name;
+  document.getElementById('fileMeta').textContent = `${(f.size / 1024).toFixed(1)} KB · ${f.name.split('.').pop().toUpperCase()}`;
+  document.getElementById('filePreview').classList.add('show');
+  document.getElementById('upzZone').style.display = 'none';
+  document.getElementById('anaBtn').disabled = false;
+
+  // ── Clear ALL previous results so old resume data never bleeds into new upload ──
+  document.getElementById('atsRes').classList.remove('show');
+  // Clear extracted fields
+  ['ef-name','ef-email','ef-phone','ef-edu','ef-exp','ef-loc'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.textContent = '—';
+  });
+  // Clear skills chips
+  ['ef-skills','ef-missing'].forEach(id => { const el = document.getElementById(id); if(el) el.innerHTML = ''; });
+  // Clear score
+  const scoreNum = document.getElementById('scoreNum'); if(scoreNum) scoreNum.textContent = '0';
+  const scoreGrade = document.getElementById('scoreGrade'); if(scoreGrade) scoreGrade.textContent = '—';
+  // Clear skill bars
+  ['kw','fmt','exp','sk','av'].forEach(id => {
+    const b = document.getElementById('b'+id); if(b) b.style.width = '0%';
+    const p = document.getElementById('p'+id); if(p) p.textContent = '0%';
+  });
+  // Clear AI suggestion
+  const aiSug = document.getElementById('aiSuggestion'); if(aiSug) aiSug.textContent = '';
+
+  toast('✅ File selected! Click "Analyze Resume" to continue.');
+}
+
+function resetResume() {
+  APP.currentFile = null;
+  document.getElementById('filePreview').classList.remove('show');
+  document.getElementById('upzZone').style.display = 'block';
+  document.getElementById('atsRes').classList.remove('show');
+  document.getElementById('anaBtn').disabled = true;
+  document.getElementById('rf').value = '';
+}
+
+function readFileAsBase64(file) {
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(file); });
+}
+
+async function readFileAsText(file) {
+  // Use mammoth for DOCX
+  if (file.name.endsWith('.docx') || file.type.includes('wordprocessingml')) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = async e => {
+        try {
+          const result = await mammoth.extractRawText({ arrayBuffer: e.target.result });
+          res(result.value);
+        } catch(err) { rej(err); }
+      };
+      r.onerror = rej;
+      r.readAsArrayBuffer(file);
+    });
+  }
+  return new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = rej; r.readAsText(file); });
+}
+
+/* ══ ATS ANALYSIS ══ */
+/* ══ LOCAL ATS ENGINE — works 100% in browser, no API needed ══ */
+const ROLE_SKILLS = {
+  "Software Engineer":      ["python","javascript","typescript","react","node","sql","git","docker","aws","system design","rest api","microservices","ci/cd","kubernetes","algorithms","data structures"],
+  "Data Scientist":         ["python","r","sql","machine learning","deep learning","tensorflow","pytorch","pandas","numpy","scikit","statistics","tableau","power bi","spark","nlp","feature engineering"],
+  "DevOps / Cloud Engineer":["aws","azure","gcp","docker","kubernetes","terraform","ansible","ci/cd","jenkins","linux","bash","monitoring","prometheus","grafana","networking","iac"],
+  "Frontend Developer":     ["html","css","javascript","typescript","react","vue","angular","webpack","figma","responsive","accessibility","redux","next.js","tailwind","performance","testing"],
+  "Backend Developer":      ["python","java","node","go","sql","postgresql","mongodb","rest api","graphql","microservices","docker","redis","message queue","authentication","security","scalability"],
+  "Full Stack Developer":   ["javascript","typescript","react","node","sql","mongodb","rest api","docker","git","aws","html","css","testing","ci/cd","system design","authentication"],
+  "ML / AI Engineer":       ["python","pytorch","tensorflow","transformers","llm","rag","langchain","vector database","mlops","cuda","fine-tuning","embeddings","api","fastapi","deployment","data pipeline"],
+  "Product Manager":        ["product roadmap","agile","scrum","user research","analytics","jira","stakeholder","metrics","a/b testing","sql","figma","strategy","prioritization","okr","market research","go-to-market"],
+  "Cybersecurity Analyst":  ["security","penetration testing","siem","firewall","vulnerability","incident response","linux","networking","python","cryptography","compliance","iso 27001","soc","threat analysis","ids","forensics"],
+  "Other":                  ["communication","problem solving","leadership","teamwork","project management","analysis","documentation","presentation","strategy","excel"]
+};
+
+const ACTION_VERBS = ["developed","built","designed","implemented","created","led","managed","optimized","improved","architected","deployed","scaled","reduced","increased","launched","delivered","engineered","automated","integrated","collaborated","spearheaded","established","streamlined","mentored","coordinated"];
+
+const SECTION_KEYWORDS = ["experience","education","skills","projects","summary","objective","certifications","achievements","work history","employment"];
+
+function localATSScore(text, role) {
+  const t = text.toLowerCase();
+  const words = t.split(/\s+/);
+  const roleSkills = ROLE_SKILLS[role] || ROLE_SKILLS["Other"];
+
+  // 1. Keyword match
+  const found = roleSkills.filter(sk => t.includes(sk.toLowerCase()));
+  const missing = roleSkills.filter(sk => !t.includes(sk.toLowerCase()));
+  const kwScore = Math.round((found.length / roleSkills.length) * 100);
+
+  // 2. Formatting — check for sections, reasonable length, bullet indicators
+  const hasSections = SECTION_KEYWORDS.filter(s => t.includes(s)).length;
+  const hasEmail = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/.test(t);
+  const hasPhone = /(\+?\d[\d\s\-().]{8,}\d)/.test(text);
+  const wordCount = words.length;
+  const hasBullets = (text.match(/[•\-\*]\s/g) || []).length > 3;
+  const fmtScore = Math.min(100, (hasSections * 10) + (hasEmail ? 15 : 0) + (hasPhone ? 10 : 0) + (hasBullets ? 20 : 0) + (wordCount > 200 ? 20 : 10) + (wordCount < 1000 ? 15 : 5));
+
+  // 3. Experience relevance — years of experience + role mentions
+  const yearMatches = text.match(/\b(20\d{2})\b/g) || [];
+  const uniqueYears = [...new Set(yearMatches)].length;
+  const hasRoleKeyword = t.includes(role.toLowerCase().split(' ')[0]);
+  const expScore = Math.min(100, (uniqueYears * 12) + (hasRoleKeyword ? 20 : 0) + (t.includes('experience') ? 15 : 0) + (t.includes('year') ? 10 : 0));
+
+  // 4. Skills coverage — all tech/skill words
+  const allSkillWords = Object.values(ROLE_SKILLS).flat();
+  const foundAnySkills = allSkillWords.filter(sk => t.includes(sk)).length;
+  const skScore = Math.min(100, Math.round((foundAnySkills / 12) * 100));
+
+  // 5. Action verbs
+  const foundVerbs = ACTION_VERBS.filter(v => t.includes(v));
+  const avScore = Math.min(100, foundVerbs.length * 12);
+
+  // Overall weighted score
+  const overall = Math.round(
+    kwScore * 0.35 +
+    fmtScore * 0.15 +
+    Math.min(100, expScore) * 0.20 +
+    Math.min(100, skScore) * 0.20 +
+    Math.min(100, avScore) * 0.10
+  );
+
+  // Extract info
+  const emailMatch = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  const phoneRaw = text.match(/(\+?[0-9][0-9\s\-().]{7,14}[0-9])/);
+  const phoneMatch = phoneRaw ? [phoneRaw[0].replace(/\s+/g, '')] : null;
+  // ── Smart multi-strategy name extraction (ALL-CAPS, Title Case, PDF flat text) ──
+  let nameGuess = null;
+  const SKIP_WORDS = /^(education|experience|skills|projects|summary|objective|contact|work|employment|certifications|languages|interests|references|profile|professional|technical|academic|achievements|awards|publications|volunteer|activities|about|resume|curriculum|vitae|page|section|phone|email|address|linkedin|github|university|college|bachelor|master|engineering|science|technology|data|software|analyst|developer|engineer|customer|behaviour|analysis|machine|learning)/i;
+  const toTitleCase = s => s.split(' ').filter(w=>w.length>0).map(w => (w[0]||'').toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  const isNameWords = words => words.length >= 2 && words.length <= 5 && !SKIP_WORDS.test(words.join(' ')) && words.every(w => /^[A-Za-z][a-zA-Z\'\-]{0,20}$/.test(w));
+
+  // Strategy 1: "Name: ..." label
+  const nameLabel = text.match(/(?:^|[\n\r])\s*(?:name|full[\s_-]?name|candidate)[\s:]+([A-Z][a-zA-Z]+(?: [A-Z][a-zA-Z]+){0,3})/im);
+  if(nameLabel) nameGuess = nameLabel[1].trim();
+
+  // Strategy 2: ALL-CAPS line — handles "L ARAVIND", "GUTTI CHAITANYA", "ARAVINDLINGESHWAR"
+  if(!nameGuess){
+    const allLines = text.split(/[\n\r]+/).map(l=>l.trim()).filter(l=>l.length>1);
+    for(const l of allLines){
+      if(SKIP_WORDS.test(l)) continue;
+      if(/[@\d|•·:;,\/\\(\[<]/.test(l)) continue;
+      const words = l.split(/\s+/).filter(w=>w.length>0);
+      // Single ALL-CAPS word (long single-word name)
+      if(words.length===1 && /^[A-Z]{4,25}$/.test(words[0])){
+        nameGuess = toTitleCase(l); break;
+      }
+      // "L ARAVIND" style: single letter initial + name word(s)
+      if(words.length>=2 && words.length<=4 &&
+         words.every(w=>/^[A-Z]{1,25}$/.test(w)) &&
+         words[0].length===1 && words[1].length>=3){
+        nameGuess = toTitleCase(l); break;
+      }
+      // Standard multi-word ALL-CAPS: "GUTTI CHAITANYA"
+      if(words.length>=2 && words.length<=4 &&
+         words.every(w=>/^[A-Z]{2,25}$/.test(w)) &&
+         words.some(w=>w.length>=4)){
+        nameGuess = toTitleCase(l); break;
+      }
+    }
+  }
+
+  // Strategy 3: Title Case line
+  if(!nameGuess){
+    const lines = text.split(/[\n\r]+/).map(l=>l.trim()).filter(l=>l.length>1).slice(0,15);
+    for(const l of lines){
+      if(SKIP_WORDS.test(l)) continue;
+      if(/[@\d|•·:;,\/\\(\[<]/.test(l)) continue;
+      const words = l.split(/\s+/).filter(w=>w.length>0);
+      if(isNameWords(words)){ nameGuess = l.trim(); break; }
+    }
+  }
+
+  // Strategy 4: PDF flat-text ALL-CAPS scan
+  if(!nameGuess){
+    const head = text.slice(0,300).replace(/[•|·]/g,' ');
+    const capsRun = head.match(/\b([A-Z]{2,15}(?:\s+[A-Z]{2,15}){1,3})\b/);
+    if(capsRun){
+      const words = capsRun[1].trim().split(/\s+/);
+      if(words.length>=2 && words.length<=4) nameGuess = toTitleCase(capsRun[1]);
+    }
+  }
+
+  // Strategy 5: email prefix fallback
+  if(!nameGuess){
+    const emailM = text.match(/([a-zA-Z]{3,})(?:[.\-_]([a-zA-Z]{2,}))?@/);
+    if(emailM && emailM[1]){
+      const p1 = (emailM[1][0]||'').toUpperCase()+(emailM[1].slice(1)||'').toLowerCase();
+      const p2 = emailM[2] ? (emailM[2][0]||'').toUpperCase()+(emailM[2].slice(1)||'').toLowerCase() : '';
+      nameGuess = (p1+(p2?' '+p2:'')).trim();
+    }
+  }
+  
+  // Final guard: reject if nameGuess looks like section headers
+  const BAD_NAME = /^(profile|summary|projects|skills|experience|education|certifications|objective|contact|about|work|references)/i;
+  if(nameGuess && BAD_NAME.test(nameGuess.trim())) nameGuess = null;
+  const eduMatch = text.match(/(B\.?E\.?|B\.?Tech\.?|M\.?Tech\.?|B\.?Sc\.?|M\.?Sc\.?|MBA|PhD|Bachelor[\s\w]{0,30}|Master[\s\w]{0,30}|B\.?C\.?A|M\.?C\.?A)[^\n]{0,80}/i);
+  const locMatch = text.match(/\b(Bangalore|Bengaluru|Mumbai|Hyderabad|Chennai|Pune|Delhi|New Delhi|Kolkata|Ahmedabad|Surat|Jaipur|Lucknow|Kanpur|Nagpur|Indore|Thane|Bhopal|Visakhapatnam|Coimbatore|Kochi|Patna|Vadodara|Ghaziabad|Ludhiana|Agra|Nashik|Faridabad|Meerut|Rajkot|Aurangabad|Amritsar|Mysore|Ranchi|Noida|Gurgaon|Gurugram|Mangalore|Tiruchirappalli|Remote|India)\b/i);
+  const expYearsMatch = text.match(/(\d+)\+?\s*years?\s*(of)?\s*(experience|exp)/i);
+
+  return {
+    overall_score: Math.max(15, Math.min(98, overall)),
+    categories: {
+      keyword_match: Math.max(10, kwScore),
+      formatting: Math.max(10, Math.min(100, fmtScore)),
+      experience_relevance: Math.max(10, Math.min(100, expScore)),
+      skills_coverage: Math.max(10, Math.min(100, skScore)),
+      action_verbs: Math.max(10, Math.min(100, avScore))
+    },
+    extracted: {
+      name: nameGuess ? nameGuess.trim() : null,
+      email: emailMatch ? emailMatch[0] : null,
+      phone: phoneMatch ? phoneMatch[0].trim() : null,
+      education: eduMatch ? eduMatch[0].trim().slice(0, 80) : null,
+      experience: expYearsMatch ? expYearsMatch[1] + ' years' : (uniqueYears > 1 ? (new Date().getFullYear() - Math.min(...yearMatches.map(Number))) + ' years (est.)' : null),
+      location: locMatch ? locMatch[0] : null
+    },
+    keywords_found: found.slice(0, 8),
+    keywords_missing: missing.slice(0, 6),
+    suggestion: missing.length > 4
+      ? `Add these key skills to your resume: ${missing.slice(0,3).join(', ')} — they are highly expected for ${role} roles.`
+      : foundVerbs.length < 3
+      ? `Use stronger action verbs like: ${ACTION_VERBS.slice(0,4).join(', ')} to describe your achievements.`
+      : `Good coverage! Quantify your achievements with numbers and metrics to further boost your ATS score.`
+  };
+}
+
+
+/* ══ AI-POWERED RESUME DATA EXTRACTION ══ */
+async function groqExtractResumeData(text) {
+  // Use FULL text (not just first 3000 chars) for better extraction
+  const snippet = text.slice(0, 5000);
+
+  const HEADERS = new Set(['PROJECTS','PROFILE','EDUCATION','SKILLS','EXPERIENCE','CONTACT',
+    'CERTIFICATIONS','LANGUAGES','AWARDS','SUMMARY','OBJECTIVE','INTERESTS','ACHIEVEMENTS',
+    'ACTIVITIES','REFERENCES','WORK','TECHNICAL','PROFESSIONAL','ABOUT','VOLUNTEER','LANGUAGE',
+    'DECLARATION','HOBBIES','EXTRAS','PUBLICATIONS','PERSONAL','DETAILS','STRENGTHS','INTERNSHIP']);
+
+  const allLines = snippet.split(/\n/).map(l => l.trim()).filter(l => l.length > 1);
+
+  // ── NAME: multiple strategies ──
+  let regexName = null;
+
+  // Strategy A: ALL-CAPS line (GUTTI CHAITANYA, L ARAVIND)
+  for (const raw of allLines) {
+    if (HEADERS.has(raw.toUpperCase().trim())) continue;
+    if (/[@\d|•·:;,\/\\(\[<>+_]/.test(raw)) continue;
+    const words = raw.split(/\s+/).filter(w => w.length > 0);
+    if (words.length >= 1 && words.length <= 4 &&
+        words.every(w => /^[A-Z][A-Z\-']{0,24}$/.test(w)) &&
+        words.some(w => w.length >= 3)) {
+      regexName = words.map(w => w[0] + w.slice(1).toLowerCase()).join(' ');
+      break;
+    }
+  }
+
+  // Strategy B: "Name:" label
+  if (!regexName) {
+    const nm = snippet.match(/(?:^|\n)\s*(?:name|full\s*name)[:\s]+([A-Za-z][A-Za-z\s\.]{2,40}?)(?:\n|$)/im);
+    if (nm) regexName = nm[1].trim();
+  }
+
+  // Strategy C: LinkedIn profile name — "LinkedIn: Aravind L" or "linkedin.com/in/gutti-chaitanya"
+  if (!regexName) {
+    const lm = snippet.match(/LinkedIn[:\s]+([A-Za-z][A-Za-z\s\.]{2,30}?)(?:\n|$|\|)/i);
+    if (lm) regexName = lm[1].trim();
+  }
+
+  // Strategy D: Title Case name in first 20 lines
+  if (!regexName) {
+    for (const raw of allLines.slice(0, 20)) {
+      if (HEADERS.has(raw.toUpperCase().trim())) continue;
+      if (/[@\d|•·:;,\/\\(\[<>]/.test(raw)) continue;
+      const words = raw.split(/\s+/).filter(w => w.length > 0);
+      if (words.length >= 2 && words.length <= 4 &&
+          words.every(w => /^[A-Z][a-z]{1,20}$/.test(w))) {
+        regexName = raw.trim();
+        break;
+      }
+    }
+  }
+
+  // ── EMAIL ──
+  const emailM = snippet.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
+  const regexEmail = emailM ? emailM[0] : null;
+
+  // ── PHONE ──
+  const phoneM = snippet.match(/(?:\+?91[\-\s]?)?([6-9]\d{9})/);
+  const regexPhone = phoneM ? phoneM[1] : null;
+
+  // ── LOCATION: 3 strategies ──
+  let regexLocation = null;
+  const locLabel = snippet.match(/(?:location|address|city|residing|based\s+in)[:\s]+([A-Za-z][A-Za-z\s,]{2,40}?)(?:\n|$|\||\d)/i);
+  if (locLabel) regexLocation = locLabel[1].trim().split(/[,\n|]/)[0].trim();
+  if (!regexLocation) {
+    const pinM = snippet.match(/(?:📍|🏠|📌|⚲)\s*([A-Za-z][A-Za-z\s]{2,30}?)(?:\n|$|\|)/);
+    if (pinM) regexLocation = pinM[1].trim();
+  }
+  if (!regexLocation) {
+    const CITIES = /\b(Bangalore|Bengaluru|Mumbai|Hyderabad|Chennai|Madras|Pune|Delhi|Kolkata|Ahmedabad|Noida|Gurgaon|Gurugram|Tiruvallur|Coimbatore|Kochi|Mysore|Mangalore|Jaipur|Lucknow|Nagpur|Indore|Bhopal|Visakhapatnam|Surat|Vadodara|Agra|Nashik|Faridabad|Meerut|Patna|Ranchi|Surapet|Golconda|Vellore|Trichy|Madurai|Salem|Erode|Tirupati|Vijayawada|Pondicherry|Puducherry|Chandigarh|Ludhiana|Amritsar|Dehradun|Bhubaneswar|Guwahati|Remote)\b/i;
+    const cm = snippet.match(CITIES);
+    if (cm) regexLocation = cm[0];
+  }
+
+  // ── EDUCATION: line-by-line with scoring ──
+  const DEGREE_RE = /\b(B\.?\s*Tech|B\.?\s*E\.?|B\.?\s*Sc|M\.?\s*Tech|M\.?\s*Sc|MBA|BCA|MCA|Ph\.?D|Bachelor|Master|Higher Secondary|HSC|SSC|10th|12th|Diploma)\b/i;
+  const HIGHER_DEG = /\b(B\.?\s*Tech|B\.?\s*E\.?|B\.?\s*Sc|M\.?\s*Tech|M\.?\s*Sc|MBA|BCA|MCA|Ph\.?D|Bachelor|Master)\b/i;
+  const BAD_EDU = /\b(student|hands.on|seeking|internship|passionate|with\s+\w+\s+experience|specializing\s+in\s*$)\b/i;
+  const HEADER_WORD = /\b(AWARDS|CERTIFICATIONS|LANGUAGES|SKILLS|PROJECTS|PROFILE|CONTACT|EXPERIENCE|DECLARATION)\b/;
+
+  const eduCandidates = [];
+  for (const line of allLines) {
+    if (!DEGREE_RE.test(line)) continue;
+    if (BAD_EDU.test(line)) continue;
+    let clean = line;
+    const hm = clean.match(HEADER_WORD);
+    if (hm) clean = clean.slice(0, hm.index).trim();
+    if (clean.length < 4) continue;
+    // Strip trailing year ranges and standalone years
+    clean = clean.replace(/\s+\d{4}\s*[-–]\s*(Present|\d{4})\s*$/i, '').trim();
+    clean = clean.replace(/\s+\d{4}\s*$/, '').trim();
+    if (clean.length < 4) continue;
+    // Score
+    let score = 0;
+    if (HIGHER_DEG.test(clean)) score += 10;
+    if (/[-–]/.test(clean)) score += 2;
+    if (/(School|Engineering|College|University|Institute|Saveetha|VIT|SRM|IIT|NIT|Amrita|Patasala|Vidhyashram)/i.test(clean)) score += 4;
+    if (clean.length < 70) score += 1;
+    if (clean.length > 80) clean = clean.slice(0,80).replace(/\s+\S*$/,'').trim();
+    eduCandidates.push({ result: clean, score });
+  }
+
+  // Fallback: college name alone if no degree line found
+  let regexEducation = null;
+  if (eduCandidates.length > 0) {
+    eduCandidates.sort((a, b) => b.score - a.score);
+    regexEducation = eduCandidates[0].result;
+  } else {
+    // Try to find college name and pair with any degree keyword nearby
+    const COLLEGE_RE = /(Saveetha|Velammal|Shree Niketan|Army Public|VIT|SRM|IIT|NIT|Amrita)\s*(?:School|College|University|Institute|of\s+\w+)?[^\n]{0,40}/i;
+    const cm = snippet.match(COLLEGE_RE);
+    if (cm) regexEducation = cm[0].trim().slice(0, 70);
+  }
+
+  console.log('[Extract] regex→', {name:regexName, email:regexEmail, phone:regexPhone, edu:regexEducation, loc:regexLocation});
+
+  // Skip API if regex found everything
+  if (regexName && regexEmail && regexPhone && regexEducation) {
+    return { name:regexName, email:regexEmail, phone:regexPhone, education:regexEducation, location:regexLocation };
+  }
+
+  // ── GROQ API fallback ──
+  try {
+    const res = await fetch(GROQ_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_API_KEY },
+      body: JSON.stringify({
+        model: GROQ_MODEL, max_tokens: 200, temperature: 0,
+        messages: [{ role: 'user', content:
+`Resume parser. Return ONLY JSON.
+- name: Full name, Title Case, exact word order${regexName ? '. Hint: "'+regexName+'"' : ''}
+- email: email${regexEmail ? '. Hint: "'+regexEmail+'"' : ''}
+- phone: 10 digits${regexPhone ? '. Hint: "'+regexPhone+'"' : ''}
+- education: Degree + college, no year ranges, max 70 chars${regexEducation ? '. Hint: "'+regexEducation+'"' : ''}
+- location: city only${regexLocation ? '. Hint: "'+regexLocation+'"' : ''}
+Resume: """${snippet.slice(0,1500)}"""
+JSON: {"name":null,"email":null,"phone":null,"education":null,"location":null}`
+        }]
+      })
+    });
+    if (!res.ok) {
+      console.warn('[groqExtract] HTTP', res.status);
+      return { name:regexName, email:regexEmail, phone:regexPhone, education:regexEducation, location:regexLocation };
+    }
+    const data = await res.json();
+    const raw = data.choices?.[0]?.message?.content?.trim() || '{}';
+    const clean = raw.replace(/^```json\s*/i,'').replace(/^```\s*/,'').replace(/\s*```$/,'').trim();
+    const ai = JSON.parse(clean);
+    const DEG_CHECK = /B\.?Tech|B\.?E\.?|B\.?Sc|M\.?Tech|MBA|BCA|MCA|Ph\.?D|HSC|SSC|Bachelor|Master|Diploma/i;
+    const cleanYear = e => e ? e.replace(/\s+\d{4}\s*[-–]\s*(Present|\d{4})\s*$/i,'').replace(/\s+\d{4}\s*$/,'').trim() : null;
+    return {
+      name:      ai.name      || regexName,
+      email:     ai.email     || regexEmail,
+      phone:     (ai.phone||'').replace(/\D/g,'').slice(-10) || regexPhone,
+      education: cleanYear((ai.education && DEG_CHECK.test(ai.education) && !BAD_EDU.test(ai.education)) ? ai.education : regexEducation),
+      location:  ai.location  || regexLocation
+    };
+  } catch(e) {
+    console.warn('[groqExtract] error:', e.message);
+    return { name:regexName, email:regexEmail, phone:regexPhone, education:regexEducation, location:regexLocation };
+  }
+}
+
+let _analysisRunning = false;
+async function runATS() {
+  if (!APP.currentFile) { toast('❌ Please select a resume file first.'); return; }
+  if (_analysisRunning) { toast('⏳ Analysis already running, please wait…'); return; }
+  _analysisRunning = true;
+  const btn = document.getElementById('anaBtn');
+  btn.textContent = '🤖 Reading resume…'; btn.disabled = true;
+
+  try {
+    const targetRole = APP.profile.target_role || 'Software Engineer';
+    let resumeText = '';
+
+    if (APP.currentFile.type === 'application/pdf' || APP.currentFile.name.endsWith('.pdf')) {
+      btn.textContent = '🤖 Extracting PDF…';
+      try {
+        const arrayBuf = await APP.currentFile.arrayBuffer();
+        // Try pdfjsLib first
+        if (window.pdfjsLib) {
+          try {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(arrayBuf) }).promise;
+            for (let i = 1; i <= pdf.numPages; i++) {
+              const page = await pdf.getPage(i);
+              const tc = await page.getTextContent();
+              resumeText += tc.items.map(item => item.str).join(' ') + '\n';
+            }
+            console.log('PDF extracted via pdfjsLib, length:', resumeText.length);
+          } catch(pdfErr) {
+            console.warn('pdfjsLib failed:', pdfErr.message);
+            resumeText = '';
+          }
+        }
+        // Fallback: raw text decode (works for text-based PDFs)
+        if (!resumeText.trim()) {
+          const raw = new TextDecoder('latin1').decode(new Uint8Array(arrayBuf));
+          // Extract readable strings from PDF binary
+          const matches = raw.match(/[\x20-\x7E]{4,}/g) || [];
+          resumeText = matches
+            .filter(m => m.trim().length > 3 && !/^[0-9.\s]+$/.test(m))
+            .join(' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+          console.log('PDF fallback decode, length:', resumeText.length);
+        }
+        // Last resort: FileReader as text
+        if (!resumeText.trim()) {
+          resumeText = await readFileAsText(APP.currentFile).catch(() => '');
+          console.log('PDF FileReader fallback, length:', resumeText.length);
+        }
+      } catch(e) {
+        console.error('PDF read error:', e);
+        resumeText = await readFileAsText(APP.currentFile).catch(() => '');
+      }
+    } else if (APP.currentFile.name.endsWith('.docx')) {
+      btn.textContent = '🤖 Parsing DOCX…';
+      const arrayBuf = await APP.currentFile.arrayBuffer();
+      const r = await mammoth.extractRawText({ arrayBuffer: arrayBuf });
+      resumeText = r.value;
+    } else {
+      btn.textContent = '🤖 Parsing document…';
+      resumeText = await readFileAsText(APP.currentFile);
+    }
+
+    resumeText = resumeText.trim();
+    if (resumeText.length < 30) throw new Error('Could not extract text. Please try DOCX or TXT format.');
+
+    btn.textContent = '🤖 AI scoring…';
+    // Small delay so UI updates visually
+    await new Promise(r => setTimeout(r, 600));
+
+    const result = localATSScore(resumeText, targetRole);
+    const score = result.overall_score;
+
+    // AI-powered extraction for accurate name/education/location
+    btn.textContent = '🤖 Extracting details…';
+    const aiExtracted = await groqExtractResumeData(resumeText);
+    console.log('[AI Extract]', aiExtracted);
+
+    // Merge AI extraction into result — AI wins over regex for these fields
+    const SECTION_WORDS = /^(profile|summary|projects|skills|experience|education|certifications|objective|contact|about|work|employment|references|technical|professional|activities|achievements|languages|interests)/i;
+    if (aiExtracted.name && 
+        typeof aiExtracted.name === 'string' &&
+        aiExtracted.name !== 'null' &&
+        aiExtracted.name !== 'undefined' &&
+        aiExtracted.name.length > 1 && 
+        aiExtracted.name.length < 60 &&
+        !SECTION_WORDS.test(aiExtracted.name.trim()) &&
+        aiExtracted.name.trim().split(/\s+/).length <= 6) {
+      // Keep the name exactly as returned by AI — including initials like "L Aravind"
+      let cleanedName = aiExtracted.name.trim();
+      // Only fix obvious errors: if name is ALL-CAPS, convert to Title Case
+      if(cleanedName === cleanedName.toUpperCase() && cleanedName.length > 1) {
+        cleanedName = cleanedName.split(/\s+/).map(w => (w[0]||'').toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      }
+      result.extracted.name = cleanedName;
+    } else {
+      // AI failed to find name — derive from email prefix intelligently
+      // e.g. "manojashok0619@gmail.com" → "Manoj Ashok"
+      const emailForName = (aiExtracted.email || result.extracted.email || '');
+      if (emailForName) {
+        // "manojashok0619@gmail.com" → strip numbers/symbols → "manojashok"
+        let prefix = emailForName.split('@')[0].replace(/[0-9._\-]+/g, ' ').trim();
+        // Try to split merged lowercase words using common name lengths
+        // e.g. "manojashok" → check if splitting at pos 4-6 gives valid words
+        if (prefix.split(/\s+/).length === 1 && prefix.length >= 6) {
+          // Try every split point from 3-7 chars
+          const w = prefix.toLowerCase();
+          let bestSplit = null;
+          for (let i = 3; i <= Math.min(8, w.length - 3); i++) {
+            const a = w.slice(0, i), b = w.slice(i);
+            if (a.length >= 3 && b.length >= 2) { bestSplit = a + ' ' + b; break; }
+          }
+          if (bestSplit) prefix = bestSplit;
+        }
+        const words = prefix.split(/\s+/).filter(w => w.length >= 2);
+        if (words.length >= 1) {
+          const nameFromEmail = words.map(w => (w[0]||'').toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+          if (!SECTION_WORDS.test(nameFromEmail) && nameFromEmail.length > 2) {
+            result.extracted.name = nameFromEmail;
+          }
+        }
+      }
+    }
+    if (aiExtracted.email && aiExtracted.email.includes('@')) {
+      result.extracted.email = aiExtracted.email;
+    }
+    if (aiExtracted.phone) {
+      result.extracted.phone = aiExtracted.phone;
+    }
+    if (aiExtracted.education && aiExtracted.education.length > 3) {
+      result.extracted.education = aiExtracted.education.slice(0, 80);
+    }
+    // Only use AI location if it looks like a real city (not a subject/domain name)
+    const FAKE_LOCATIONS = /^(science|technology|engineering|management|arts|commerce|data|ai|ml|it|cs|computer|artificial|information|business)/i;
+    if (aiExtracted.location && 
+        aiExtracted.location.length > 1 &&
+        aiExtracted.location !== 'null' &&
+        !FAKE_LOCATIONS.test(aiExtracted.location.trim())) {
+      result.extracted.location = aiExtracted.location;
+    }
+
+    // Save to Supabase — update ATS score AND set hr_status to submitted so admin sees it
+    try {
+      const updatePayload = { ats_score: score };
+      // Only move to submitted if still pending (not already approved/rejected)
+      if (!APP.profile.hr_status || APP.profile.hr_status === 'pending') {
+        updatePayload.hr_status = 'submitted';
+      }
+      const {error: dbErr} = await sb.from('profiles').update(updatePayload).eq('id', APP.user.id);
+      if (dbErr) {
+        console.warn('DB save error:', dbErr.message);
+      } else {
+        APP.profile.ats_score = score;
+        if (updatePayload.hr_status) APP.profile.hr_status = 'submitted';
+      }
+    } catch(e) { console.warn('DB save skipped:', e.message); }
+    APP.profile.ats_score = score;
+    try { localStorage.setItem('sp_profile_' + APP.user.id, JSON.stringify(APP.profile)); } catch(e) {}
+
+    // Show result
+    document.getElementById('atsRes').classList.add('show');
+    animateScore(score);
+    document.getElementById('scoreGrade').textContent =
+      score >= 85 ? '🟢 Excellent — Strong ATS Match' :
+      score >= 70 ? '🟡 Good — Minor Improvements Needed' :
+      score >= 55 ? '🟠 Fair — Significant Gaps Found' : '🔴 Needs Work — Major Improvements Required';
+
+    setTimeout(() => {
+      setBar('kw',  clamp(result.categories.keyword_match));
+      setBar('fmt', clamp(result.categories.formatting));
+      setBar('exp', clamp(result.categories.experience_relevance));
+      setBar('sk',  clamp(result.categories.skills_coverage));
+      setBar('av',  clamp(result.categories.action_verbs));
+    }, 200);
+
+    const ex = result.extracted || {};
+    const resumeName = ex.name || null;
+    document.getElementById('ef-name').textContent = resumeName || '—';
+
+    // ── Update sidebar & topbar with resume name if found ──
+    if(resumeName){
+      const unEl = document.getElementById('unEl'); if(unEl) unEl.textContent = resumeName;
+      // Update avatar initials
+      const initials = resumeName.split(' ').filter(w=>w.length>0).map(w=>w[0]||'').join('').slice(0,2).toUpperCase() || '?';
+      const avEl = document.querySelector('.av');
+      if(avEl) avEl.textContent = initials;
+      // Also update profile name fields if empty
+      if(!APP.profile.first_name){
+        let parts = resumeName.trim().split(/\s+/).filter(p=>p.length>0);
+        // Store full name in first_name, keep last_name empty to avoid display issues
+        // "Gutti Chaitanya" → first_name="Gutti Chaitanya", last_name=""
+        // "L Aravind" → first_name="L Aravind", last_name=""
+        // "Rahul Kumar Singh" → first_name="Rahul Kumar Singh", last_name=""
+        let firstName = parts.join(' ');
+        let lastName = '';
+        const fnEl = document.getElementById('pFN');
+        const lnEl = document.getElementById('pLN');
+        if (fnEl) fnEl.value = firstName;
+        if (lnEl) lnEl.value = lastName;
+        // Save to DB immediately
+        if(firstName) {
+          sb.from('profiles').update({
+            first_name: firstName,
+            last_name: lastName
+          }).eq('id', APP.user.id).then(()=>{}).catch(()=>{});
+          APP.profile.first_name = firstName;
+          APP.profile.last_name = lastName;
+        }
+      }
+    }
+    document.getElementById('ef-email').textContent = ex.email || APP.user.email || '—';
+    document.getElementById('ef-phone').textContent = ex.phone || '—';
+    document.getElementById('ef-edu').textContent = ex.education || '—';
+    document.getElementById('ef-exp').textContent = ex.experience || '—';
+    document.getElementById('ef-loc').textContent = ex.location || '—';
+
+    const found = result.keywords_found || [];
+    const miss  = result.keywords_missing || [];
+    document.getElementById('ef-skills').innerHTML  = found.map(k => `<span class="chip cn">${k}</span>`).join('') || '<span style="color:var(--muted);font-size:13px">None detected</span>';
+    document.getElementById('ef-missing').innerHTML = miss.map(k => `<span class="chip cm">+ ${k}</span>`).join('') || '<span style="color:var(--green);font-size:13px">Great coverage!</span>';
+    document.getElementById('aiSug').textContent = result.suggestion || 'Looking good!';
+    APP.lastExtracted = result; // save for interview + report use
+
+    // ── AUTO-SUBMIT TO HR based on score ──
+    if (score >= 55) {
+      try { await sb.from('profiles').update({ hr_status: 'submitted', interview_unlocked: false }).eq('id', APP.user.id); } catch(e) { console.warn('HR submit skipped:', e.message); }
+      APP.profile.hr_status = 'submitted';
+      localStorage.setItem(`sp_hr_status_${APP.user.id}`, 'submitted');
+    }
+
+    // ── CAREER RECOMMENDATIONS ──
+    renderCareerRecs(result, targetRole);
+
+    renderUI();
+    const autoMsg = score >= 55
+      ? `✅ Analyzed! Score: ${score}% — Resume auto-submitted to HR.`
+      : `⚠️ Score: ${score}% — Improve your resume before submitting to HR.`;
+    toast(autoMsg);
+
+  } catch (err) {
+    console.error('ATS error:', err);
+    toast('❌ ' + (err.message || 'Analysis failed. Please try again.'));
+  }
+  _analysisRunning = false;
+  btn.textContent = '🤖 Analyze Resume'; btn.disabled = false;
+}
+
+/* ══ CAREER RECOMMENDATIONS ══ */
+function renderCareerRecs(result, targetRole) {
+  const CAREER_MAP = {
+    "Software Engineer":       { alt:["Full Stack Developer","Backend Developer","DevOps / Cloud Engineer"],   learn:["System Design","Docker","Kubernetes","TypeScript"] },
+    "Data Scientist":          { alt:["ML / AI Engineer","Data Analyst","Backend Developer"],                  learn:["PyTorch","MLOps","LLMs","Spark"] },
+    "DevOps / Cloud Engineer": { alt:["Software Engineer","Full Stack Developer","Cybersecurity Analyst"],      learn:["Terraform","Kubernetes","AWS","Monitoring"] },
+    "Frontend Developer":      { alt:["Full Stack Developer","Product Manager","Software Engineer"],            learn:["TypeScript","Next.js","Accessibility","Testing"] },
+    "Backend Developer":       { alt:["Full Stack Developer","Software Engineer","DevOps / Cloud Engineer"],    learn:["System Design","Docker","GraphQL","Redis"] },
+    "Full Stack Developer":    { alt:["Software Engineer","Frontend Developer","Backend Developer"],            learn:["Cloud (AWS/GCP)","Docker","CI/CD","Testing"] },
+    "ML / AI Engineer":        { alt:["Data Scientist","Software Engineer","Backend Developer"],               learn:["LLMs","RAG","Vector DBs","FastAPI"] },
+    "Product Manager":         { alt:["Full Stack Developer","Data Scientist","Software Engineer"],            learn:["SQL","Analytics","Figma","Agile"] },
+    "Cybersecurity Analyst":   { alt:["DevOps / Cloud Engineer","Software Engineer","Backend Developer"],      learn:["Penetration Testing","SIEM","Python","Cloud Security"] },
+    "Other":                   { alt:["Software Engineer","Full Stack Developer","Data Scientist"],            learn:["Python","SQL","Git","Communication"] }
+  };
+
+  const map = CAREER_MAP[targetRole] || CAREER_MAP["Other"];
+  const score = result.overall_score;
+  const missing = result.keywords_missing || [];
+
+  // Score-based suitability verdict
+  let verdict, vColor, vIcon;
+  if (score >= 80)      { verdict = "Strong Fit"; vColor = "var(--green)"; vIcon = "🟢"; }
+  else if (score >= 65) { verdict = "Good Fit"; vColor = "#22d3ee"; vIcon = "🔵"; }
+  else if (score >= 50) { verdict = "Partial Fit — Add missing skills"; vColor = "var(--yellow,#eab308)"; vIcon = "🟡"; }
+  else                  { verdict = "Needs Work — Significant gaps found"; vColor = "#f87171"; vIcon = "🔴"; }
+
+  const el = document.getElementById('careerRecBox');
+  if (!el) return;
+
+  // Score-gated: control Submit to HR visibility
+  const submitWrap = document.getElementById('submitHRWrap');
+  if (submitWrap) {
+    if (score < 50) {
+      submitWrap.style.display = 'none'; // hide completely
+    } else {
+      submitWrap.style.display = 'block';
+    }
+  }
+
+  // Score band messaging
+  let scoreBand, bandBg, bandBorder, bandColor, bandIcon;
+  if (score >= 80) {
+    scoreBand = `<strong>🚀 Excellent!</strong> Your resume is highly competitive. Submit to HR and you're very likely to get shortlisted.`;
+    bandBg = 'rgba(34,197,94,.07)'; bandBorder = 'rgba(34,197,94,.2)'; bandColor = '#86efac'; bandIcon = '🟢';
+  } else if (score >= 65) {
+    scoreBand = `<strong>✅ Good Score!</strong> Your profile looks solid for <strong>${targetRole}</strong>. You can submit to HR for review.`;
+    bandBg = 'rgba(0,212,255,.06)'; bandBorder = 'rgba(0,212,255,.2)'; bandColor = '#67e8f9'; bandIcon = '🔵';
+  } else if (score >= 50) {
+    scoreBand = `<strong>⚠️ Borderline Score.</strong> You can submit to HR but your chances are lower. We recommend adding the missing skills below and re-analyzing first for a better outcome.`;
+    bandBg = 'rgba(234,179,8,.06)'; bandBorder = 'rgba(234,179,8,.2)'; bandColor = '#fde68a'; bandIcon = '🟡';
+  } else {
+    scoreBand = `<strong>❌ Score Too Low to Apply.</strong> Your resume score (${score}%) is below the minimum threshold of 50% required to submit to HR. Focus on the recommendations below to improve your resume.`;
+    bandBg = 'rgba(239,68,68,.07)'; bandBorder = 'rgba(239,68,68,.2)'; bandColor = '#fca5a5'; bandIcon = '🔴';
+  }
+
+  // Recommended roles based on score + profile
+  const recommendedRoles = score >= 65
+    ? map.alt  // High score → show alternative strong roles
+    : map.alt.map(r => r + ' (after improvement)'); // Low score → show with caveat
+
+  el.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px">
+      <div style="font-size:28px">${vIcon}</div>
+      <div>
+        <div style="font-size:17px;font-weight:800;color:${vColor}">${verdict}</div>
+        <div style="font-size:13px;color:var(--muted2);margin-top:2px">for <strong style="color:#fff">${targetRole}</strong> · ATS Score: <strong style="color:${vColor}">${score}%</strong></div>
+      </div>
+    </div>
+
+    <!-- Score band message -->
+    <div style="padding:14px;background:${bandBg};border:1px solid ${bandBorder};border-radius:10px;font-size:13px;color:${bandColor};line-height:1.7;margin-bottom:16px">
+      ${scoreBand}
+    </div>
+
+    <!-- AI Role Recommendations -->
+    <div style="margin-bottom:16px">
+      <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px">🎯 ${score >= 65 ? 'Also Suited For' : 'AI Recommends These Roles Instead'}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${map.alt.map(r => `<div onclick="applyForRole('${r}')" style="padding:6px 14px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);border-radius:20px;font-size:13px;color:#00d4ff;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(0,212,255,.18)'" onmouseout="this.style.background='rgba(0,212,255,.08)'">${r} →</div>`).join('')}
+      </div>
+      ${score < 65 ? `<p style="font-size:12px;color:var(--muted);margin-top:8px">👆 Click a role to set it as your target and re-analyze</p>` : ''}
+    </div>
+
+    <!-- Skills to improve -->
+    <div style="margin-bottom:4px">
+      <div style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:10px">📚 ${score >= 65 ? 'Skills to Add Next' : 'Missing Skills — Add These to Your Resume'}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        ${[...missing.slice(0,3), ...map.learn].filter((v,i,a)=>a.indexOf(v)===i).slice(0,6).map(sk => `<span style="padding:6px 14px;background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);border-radius:20px;font-size:13px;color:#a78bfa;font-weight:600">+ ${sk}</span>`).join('')}
+      </div>
+    </div>
+  `;
+  el.style.display = 'block';
+}
+
+
+/* ── APPLY FOR RECOMMENDED ROLE ── */
+function applyForRole(role) {
+  if (!confirm(`Switch your target role to "${role}" and re-analyze?`)) return;
+  APP.profile.target_role = role;
+  // Update the profile select if visible
+  const sel = document.getElementById('pRole');
+  if (sel) {
+    for (let o of sel.options) { if (o.value === role || o.text === role) { sel.value = o.value; break; } }
+  }
+  // Save to Supabase
+  sb.from('profiles').update({ target_role: role }).eq('id', APP.user.id).then(() => {
+    toast(`🎯 Target role updated to ${role}! Re-analyzing…`);
+    setTimeout(() => runATS(), 800);
+  });
+}
+
+/* ══ VERSION CONTROL ══ */
+function saveVersion() {
+  if (!APP.profile.ats_score || !APP.currentFile) { toast('❌ Analyze a resume first.'); return; }
+  const ver = {
+    id: Date.now(),
+    name: APP.currentFile.name,
+    score: APP.profile.ats_score,
+    date: new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+    role: APP.profile.target_role,
+    active: true,
+  };
+  APP.versions.unshift(ver);
+  if (APP.versions.length > 5) APP.versions = APP.versions.slice(0, 5);
+  localStorage.setItem(`sp_versions_${APP.user.id}`, JSON.stringify(APP.versions));
+  renderVersions();
+  toast('💾 Version saved! ' + APP.versions.length + ' version(s) stored.');
+  document.getElementById('d-vers').textContent = APP.versions.length;
+}
+
+function renderVersions() {
+  const list = document.getElementById('verList');
+  const countEl = document.getElementById('verCount');
+  if (!APP.versions.length) {
+    list.innerHTML = '<p style="color:var(--muted);font-size:13px">No versions yet. Analyze your first resume to save it.</p>';
+    countEl.textContent = '0 saved';
+    return;
+  }
+  countEl.textContent = APP.versions.length + ' saved';
+  list.innerHTML = APP.versions.map((v, i) => `
+    <div class="ver-item ${i === 0 ? 'active-ver' : ''}">
+      <div class="ver-num">v${APP.versions.length - i}</div>
+      <div class="ver-info">
+        <div class="ver-name">${v.name}</div>
+        <div class="ver-date">${v.date} · ${v.role}</div>
+      </div>
+      <div class="ver-score" style="color:${v.score >= 70 ? 'var(--green)' : v.score >= 55 ? 'var(--yellow)' : '#f87171'}">${v.score}%</div>
+    </div>`).join('');
+}
+
+/* ══ SUBMIT TO HR ══ */
+async function submitToHR() {
+  const score = APP.profile.ats_score || 0;
+  if (score < 50) {
+    toast('❌ Score too low. You need at least 50% ATS score to submit to HR.', 'error');
+    return;
+  }
+  const btn = document.getElementById('submitHRBtn');
+  btn.textContent = 'Submitting…'; btn.disabled = true;
+  const { error } = await sb.from('profiles').update({ hr_status: 'submitted', interview_unlocked: false }).eq('id', APP.user.id);
+  btn.textContent = '📨 Submit to HR →'; btn.disabled = false;
+  if (error) {
+    // RLS might be blocking - still update locally so UI works
+    console.warn('Supabase update blocked:', error.message);
+    // Try inserting into a submissions table as fallback
+    try { await sb.from('submissions').upsert({ user_id: APP.user.id, email: APP.user.email, name: (APP.profile.first_name||'') + ' ' + (APP.profile.last_name||''), ats_score: APP.profile.ats_score, status: 'submitted', target_role: APP.profile.target_role, submitted_at: new Date().toISOString() }); } catch(e) {}
+  }
+  APP.profile.hr_status = 'submitted';
+  localStorage.setItem(`sp_hr_status_${APP.user.id}`, 'submitted');
+  renderUI();
+  toast('✅ Resume submitted to HR! You will be notified once reviewed.');
+}
+
+/* ══ SEND TO COMPANIES ══ */
+function renderCompanyList() {
+  const list = document.getElementById('companyList');
+  list.innerHTML = COMPANIES.map(c => {
+    const sent = APP.sentCompanies.includes(c.name);
+    return `<div class="company-card">
+      <div class="co-logo" style="background:rgba(255,255,255,.06)">${c.logo}</div>
+      <div class="co-info">
+        <div class="co-name">${c.name}</div>
+        <div class="co-meta">${c.domain} · ${c.salary} avg · ${c.match}% match</div>
+      </div>
+      <span class="co-status ${sent ? 'co-sent' : 'co-pending'}">${sent ? '✅ Sent' : '⏳ Ready'}</span>
+      ${!sent ? `<button class="btn bp" style="margin-left:8px;padding:7px 14px;font-size:12px" onclick="openSendModal('${c.name}')">Send →</button>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function openSendModal(compName) {
+  if ((APP.profile.ats_score || 0) < 65) {
+    toast('⚠️ Your ATS score must be 65%+ to send to companies. Improve your resume first.', 'warn');
+    return;
+  }
+  APP.pendingSendCompany = compName;
+  const c = COMPANIES.find(x => x.name === compName);
+  document.getElementById('sendModalDesc').textContent = `Sending your resume to ${c.name} will notify their HR team with your profile, ATS score (${APP.profile.ats_score}%), and extracted skills.`;
+  document.getElementById('sendModalPreview').innerHTML = `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px">What will be shared:</div>
+    <div style="font-size:13px;color:var(--text);line-height:2">
+      👤 Name: ${APP.profile.first_name} ${APP.profile.last_name}<br>
+      📧 Email: ${APP.user.email}<br>
+      🎯 Role: ${APP.profile.target_role}<br>
+      📊 ATS Score: ${APP.profile.ats_score}%<br>
+      🏢 Target Company: ${c.name}
+    </div>`;
+  document.getElementById('sendModal').classList.add('show');
+}
+
+async function confirmSend() {
+  const c = APP.pendingSendCompany;
+  if (!c) return;
+  closeModal();
+  if (!APP.sentCompanies.includes(c)) {
+    APP.sentCompanies.push(c);
+    localStorage.setItem(`sp_sent_${APP.user.id}`, JSON.stringify(APP.sentCompanies));
+    // Save to Supabase
+    try { await sb.from('profiles').update({ applications_sent: APP.sentCompanies.length }).eq('id', APP.user.id); } catch(e) {}
+  }
+  document.getElementById('d-apps').textContent = APP.sentCompanies.length;
+  renderCompanyList();
+  toast(`🚀 Resume sent to ${c}! Their HR team has been notified.`);
+}
+
+function sendToAll() {
+  if ((APP.profile.ats_score || 0) < 65) {
+    toast('⚠️ Your ATS score must be 65%+ to send to companies.', 'warn');
+    return;
+  }
+  COMPANIES.forEach(c => { if (!APP.sentCompanies.includes(c.name)) APP.sentCompanies.push(c.name); });
+  localStorage.setItem(`sp_sent_${APP.user.id}`, JSON.stringify(APP.sentCompanies));
+  document.getElementById('d-apps').textContent = APP.sentCompanies.length;
+  renderCompanyList();
+  toast(`🚀 Resume sent to all ${COMPANIES.length} matched companies!`);
+}
+
+function closeModal() { document.getElementById('sendModal').classList.remove('show'); APP.pendingSendCompany = null; }
+
+/* ══ AI INTERVIEW ENGINE ══ */
+function renderInterviewPage() {
+  const p = APP.profile;
+  const lsUnlocked = localStorage.getItem(`sp_int_unlocked_${APP.user.id}`) === '1';
+  const unlocked = p.interview_unlocked || lsUnlocked;
+  const rd = document.getElementById('iRoleDisplay');
+  if (rd) rd.textContent = (p.target_role || 'Software Engineer').split(' ').slice(0,2).join(' ');
+  document.getElementById('iLocked').style.display = !unlocked ? 'block' : 'none';
+  document.getElementById('iStart').style.display = unlocked && !APP.interviewStarted && !p.interview_score ? 'block' : 'none';
+  document.getElementById('iRoom').style.display = 'none';
+  document.getElementById('iEval').style.display = 'none';
+  document.getElementById('iDone').style.display = p.interview_score ? 'block' : 'none';
+  if (p.interview_score && document.getElementById('iDone').innerHTML.trim() === '') showReport(p.interview_score);
+}
+
+// ════════════════════════════════════════
+// LIVE CONFERENCE VOICE ENGINE
+// ════════════════════════════════════════
+const IV = {
+  recognition: null,
+  synth: window.speechSynthesis,
+  ariaVoice: null,
+  isRecording: false,
+  isSpeaking: false,
+  waveInterval: null,
+  timerInterval: null,
+  currentQ: null,
+  questionCount: 0,
+  wordsSinceBC: 0,
+  lastBCTime: 0,
+  silenceTimer: null,
+  finalText: '',
+  _bubbleFade: null,
+};
+
+// ─────────────────────────────────────────────────────
+// ARIA LIVE REACTION ENGINE — AI-powered, not scripted
+// ─────────────────────────────────────────────────────
+
+function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+// Absolute fallback only — used if AI call fails or is too slow
+const FALLBACK_NEUTRAL = ["Mm-hmm.", "I see.", "Right.", "Okay.", "Uh-huh.", "Go on.", "Mm."];
+const FALLBACK_PAUSE   = ["Take your time.", "I'm listening.", "No rush.", "Please, continue."];
+
+// ── AI-GENERATED REACTION ──
+// Calls Groq with what the candidate just said and gets a real human HR reaction.
+// Ultra-low latency: uses llama-3.1-8b-instant (fastest model, ~200ms).
+// Returns a 2-6 word spoken reaction — nothing more.
+// Dedup: only one AI reaction request at a time
+let _aiReacting = false;
+
+async function getAIReaction(segment, fullSoFar) {
+  if (_aiReacting) return null; // skip if previous call still pending
+  _aiReacting = true;
+
+  const recent = (fullSoFar || '').trim().split(/\s+/).slice(-20).join(' ');
+  const seg = (segment || '').trim().slice(0, 120); // cap segment length
+
+  const prompt = `HR interviewer reaction. Candidate said: "${seg}". Context: "${recent}".
+Reply 2-4 words only. Natural human reaction.
+If "don't know/not sure/sorry/apology" → empathetic (e.g. "That's okay" "No worries").
+If negative/failure → understanding (e.g. "I see" "I understand").
+If positive/achievement → brief interest (e.g. "I see" "Go on" "Noted").
+Otherwise → neutral filler (e.g. "Mm-hmm" "Right" "I follow").
+NEVER say Perfect/Great/Excellent/Wonderful. Just the words.`;
+
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 900); // 900ms hard limit
+    const res = await fetch(GROQ_URL, {
+      method: 'POST',
+      signal: ctrl.signal,
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_API_KEY },
+      body: JSON.stringify({
+        model: 'llama-3.1-8b-instant',
+        max_tokens: 10,
+        temperature: 0.3,
+        stream: false,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    clearTimeout(tid);
+    const data = await res.json();
+    const raw = (data.choices?.[0]?.message?.content || '').trim();
+    const clean = raw.replace(/['"*]/g, '').trim();
+    const words = clean.split(/\s+/).filter(Boolean);
+    if (words.length >= 1 && words.length <= 6) {
+      _aiReacting = false;
+      return clean.match(/[.!?]$/) ? clean : clean + '.';
+    }
+  } catch(e) { /* timeout or network error — use fallback */ }
+  _aiReacting = false;
+  return null;
+}
+
+function initAriaVoice() {
+  const tryPick = () => {
+    const voices = IV.synth.getVoices();
+    if (!voices.length) return;
+    IV.ariaVoice = voices.find(v => /samantha|karen|moira|victoria|fiona|google uk english female/i.test(v.name))
+      || voices.find(v => v.lang === 'en-GB')
+      || voices.find(v => v.lang.startsWith('en') && /female|woman/i.test(v.name))
+      || voices.find(v => v.lang.startsWith('en')) || voices[0];
+  };
+  tryPick();
+  if (IV.synth.onvoiceschanged !== undefined) IV.synth.onvoiceschanged = tryPick;
+  setTimeout(tryPick, 500);
+}
+// initAriaVoice called lazily when interview starts
+
+function ariaSpeak(text, onEnd, opts) {
+  opts = opts || {};
+  if (!IV.synth) { if (onEnd) onEnd(); return; }
+  IV.synth.cancel();
+  IV.isSpeaking = true;
+  if (!opts.silent) { setAriaStatus('speaking', 'ARIA is speaking…'); setAvatarRing('pulse-blue'); }
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.rate = opts.rate || 0.88; utt.pitch = opts.pitch || 1.08; utt.volume = opts.volume || 1;
+  if (IV.ariaVoice) utt.voice = IV.ariaVoice;
+  utt.onend = () => {
+    IV.isSpeaking = false;
+    if (!opts.silent) { setAriaStatus('listening', 'Your turn — press mic to answer'); setAvatarRing('pulse-green'); }
+    if (onEnd) onEnd();
+  };
+  utt.onerror = () => { IV.isSpeaking = false; if (onEnd) onEnd(); };
+  IV.synth.speak(utt);
+  setTimeout(() => { if (IV.isSpeaking) IV.synth.resume(); }, 200);
+}
+
+function ariaBackchannel(type) { fireBackchannel(type, '', IV.finalText); }
+
+// AI-powered live reaction — async, non-blocking
+async function fireBackchannel(type, segment, fullText) {
+  if (IV.isSpeaking) return;
+  if (Date.now() - IV.lastBCTime < 3200) return;
+
+  // Mark time immediately so overlapping calls are blocked
+  IV.lastBCTime = Date.now();
+
+  let phrase;
+
+  if (type === 'pause') {
+    // Pause = candidate went silent — use a simple neutral encouragement
+    // Still ask AI but with a fast timeout fallback
+    const aiReply = await Promise.race([
+      getAIReaction(segment || 'silence', fullText),
+      new Promise(r => setTimeout(() => r(null), 800))
+    ]);
+    phrase = aiReply || pickRandom(FALLBACK_PAUSE);
+  } else {
+    // Live segment reaction — AI reads exactly what was said and reacts
+    const aiReply = await Promise.race([
+      getAIReaction(segment || '', fullText),
+      new Promise(r => setTimeout(() => r(null), 1200)) // 1.2s max wait
+    ]);
+    phrase = aiReply || pickRandom(FALLBACK_NEUTRAL);
+  }
+
+  // Still recording? Say it.
+  if (!IV.isRecording && type !== 'pause') return;
+
+  showAriaBubble(phrase, 'bc');
+
+  const utt = new SpeechSynthesisUtterance(phrase);
+  utt.rate = 1.05;
+  utt.pitch = 1.12;
+  utt.volume = 0.7;
+  if (IV.ariaVoice) utt.voice = IV.ariaVoice;
+
+  setAvatarRing('pulse-purple');
+  setAriaStatus('reacting', 'ARIA is reacting…');
+
+  utt.onend = () => {
+    if (IV.isRecording) {
+      setAvatarRing('pulse-green');
+      setAriaStatus('listening', 'Listening to you…');
+    }
+  };
+
+  IV.synth.speak(utt);
+}
+
+function showAriaBubble(text, type) {
+  const bubble = document.getElementById('ariaBubbleLive');
+  if (!bubble) return;
+  const span = bubble.querySelector('span:last-child') || bubble;
+  span.textContent = text;
+  bubble.style.opacity = '1';
+  bubble.style.transform = 'translateY(0)';
+  bubble.style.background = type === 'bc' ? 'rgba(124,58,237,.15)' : type === 'ack' ? 'rgba(34,197,94,.12)' : 'rgba(0,212,255,.1)';
+  bubble.style.borderColor = type === 'bc' ? 'rgba(124,58,237,.3)' : type === 'ack' ? 'rgba(34,197,94,.25)' : 'rgba(0,212,255,.2)';
+  clearTimeout(IV._bubbleFade);
+  // Live reactions fade fast; pause/detailed reactions linger longer
+  const fadeMs = (type === 'live') ? 1800 : (type === 'bc') ? 2400 : 3200;
+  IV._bubbleFade = setTimeout(() => {
+    bubble.style.opacity = '0'; bubble.style.transform = 'translateY(-8px)';
+  }, fadeMs);
+}
+
+function setAriaStatus(state, text) {
+  const dot = document.getElementById('statusDot');
+  const label = document.getElementById('statusText');
+  if (!dot || !label) return;
+  label.textContent = text;
+  const colors = { speaking:'#00d4ff', listening:'#22c55e', thinking:'#eab308', idle:'#64748b', reacting:'#a78bfa' };
+  dot.style.background = colors[state] || '#64748b';
+  dot.style.animation = state !== 'idle' ? 'blink 0.8s infinite' : 'none';
+}
+
+function setAvatarRing(mode) {
+  const ring = document.getElementById('avatarRing');
+  const circle = document.getElementById('avatarCircle');
+  if (!ring) return;
+  const configs = {
+    'pulse-blue':   { border:'rgba(0,212,255,.5)',   anim:'ring-pulse-iv 1.2s ease-in-out infinite',   cc:'rgba(0,212,255,.6)' },
+    'pulse-green':  { border:'rgba(34,197,94,.4)',   anim:'ring-pulse-g-iv 1.2s ease-in-out infinite', cc:'rgba(34,197,94,.4)' },
+    'pulse-purple': { border:'rgba(124,58,237,.5)',  anim:'ring-pulse-iv 0.9s ease-in-out infinite',   cc:'rgba(124,58,237,.5)' },
+  };
+  const c = configs[mode];
+  if (c) {
+    ring.style.border = '2px solid ' + c.border; ring.style.animation = c.anim;
+    if (circle) circle.style.borderColor = c.cc;
+  } else {
+    ring.style.border = '2px solid transparent'; ring.style.animation = 'none';
+    if (circle) circle.style.borderColor = 'rgba(0,212,255,.25)';
+  }
+}
+
+// ── MICROPHONE ──
+function toggleMic() {
+  if (IV.isSpeaking) { IV.synth.cancel(); IV.isSpeaking = false; }
+  if (IV.isRecording) stopMic(); else startMic();
+}
+
+function startMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { toast('⚠️ Speech recognition not supported. Please type your answer.'); return; }
+  IV.recognition = new SR();
+  IV.recognition.continuous = true;
+  IV.recognition.interimResults = true;
+  IV.recognition.lang = 'en-US';
+  const ansEl = document.getElementById('ansBox');
+  IV.finalText = ansEl.textContent.trim();
+  ansEl.removeAttribute('data-empty');
+  let totalWords = 0;
+
+  IV.recognition.onresult = e => {
+    let interim = '';
+
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        const seg = e.results[i][0].transcript.trim();
+        if (!seg) continue;
+
+        IV.finalText += (IV.finalText ? ' ' : '') + seg;
+        const nw = seg.split(/\s+/).filter(w => w).length;
+        totalWords += nw;
+
+        // ── REACT TO EVERY FINALIZED SEGMENT IMMEDIATELY ──
+        // Fires the moment speech recognition confirms a phrase.
+        // Passes the exact segment (e.g. "I don't know") to AI for accurate reaction.
+        const timeSince = Date.now() - IV.lastBCTime;
+        if (!IV.isSpeaking && timeSince > 3200) {
+          fireBackchannel('segment', seg, IV.finalText);
+        }
+      } else {
+        interim = e.results[i][0].transcript;
+      }
+    }
+
+    // Update transcript display
+    ansEl.textContent = IV.finalText + (interim ? ' ' + interim : '');
+    syncWordCount();
+
+    // ── SILENCE DETECTION — only fires if no reaction happened recently ──
+    clearTimeout(IV.silenceTimer);
+    IV.silenceTimer = setTimeout(() => {
+      if (IV.isRecording && !IV.isSpeaking && Date.now() - IV.lastBCTime > 5000) {
+        const wc = IV.finalText.trim().split(/\s+/).filter(w => w).length;
+        if (wc > 3) fireBackchannel('pause', '', IV.finalText);
+      }
+    }, 2500);
+  };
+
+  IV.recognition.onerror = e => {
+    if (e.error === 'not-allowed') { toast('❌ Microphone access denied.'); stopMic(); }
+  };
+  IV.recognition.onend = () => { if (IV.isRecording) { try { IV.recognition.start(); } catch(e){} } };
+  IV.recognition.start();
+  IV.isRecording = true; IV.wordsSinceBC = 0; IV.lastBCTime = Date.now();
+  setMicUI(true); startWave();
+  setAriaStatus('listening','Listening to you…'); setAvatarRing('pulse-green');
+}
+
+function stopMic() {
+  clearTimeout(IV.silenceTimer);
+  IV.isRecording = false;
+  try { IV.recognition?.stop(); } catch(e) {}
+  IV.recognition = null;
+  setMicUI(false); stopWave();
+  const ansEl = document.getElementById('ansBox');
+  if (ansEl && IV.finalText) ansEl.textContent = IV.finalText;
+  syncWordCount();
+  const wc = IV.finalText.trim().split(/\s+/).filter(w=>w).length;
+  if (wc > 3) {
+    // Use AI to generate a natural acknowledgement of what was just said
+    getAIReaction(IV.finalText.trim().split(/\s+/).slice(-15).join(' '), IV.finalText).then(phrase => {
+      const ack = phrase || "Noted, thank you.";
+      showAriaBubble(ack, 'ack');
+      const utt = new SpeechSynthesisUtterance(ack);
+      utt.rate = 0.95; utt.pitch = 1.08; utt.volume = 0.88;
+      if (IV.ariaVoice) utt.voice = IV.ariaVoice;
+      IV.synth.speak(utt);
+    });
+  }
+  setAriaStatus('idle','Answer captured — click Submit when ready'); setAvatarRing('none');
+}
+
+function setMicUI(recording) {
+  const btn = document.getElementById('micBtn');
+  const label = document.getElementById('micLabel');
+  if (btn) {
+    btn.style.background = recording ? 'rgba(239,68,68,.18)' : 'rgba(255,255,255,.06)';
+    btn.style.borderColor = recording ? 'rgba(239,68,68,.6)' : 'rgba(255,255,255,.15)';
+    btn.style.animation = recording ? 'mic-pulse-iv 1.5s ease-in-out infinite' : 'none';
+    btn.innerHTML = recording ? '⏹️' : '🎙️';
+  }
+  if (label) label.textContent = recording ? 'Recording… click to stop' : 'Press mic to speak your answer';
+}
+
+function startWave() {
+  const bars = document.querySelectorAll('.wvbar');
+  const wv = document.getElementById('waveform');
+  if (wv) wv.style.opacity = '1';
+  IV.waveInterval = setInterval(() => { bars.forEach(b => { b.style.height = (3 + Math.random() * 26) + 'px'; }); }, 90);
+}
+
+function stopWave() {
+  clearInterval(IV.waveInterval);
+  const bars = document.querySelectorAll('.wvbar');
+  const heights = [5,10,18,7,24,12,20,8,26,14,7];
+  bars.forEach((b, i) => { b.style.height = (heights[i] || 8) + 'px'; });
+  const wv = document.getElementById('waveform');
+  if (wv) wv.style.opacity = '.35';
+}
+
+function syncWordCount() {
+  const ansEl = document.getElementById('ansBox');
+  if (!ansEl) return;
+  const words = ansEl.textContent.trim().split(/\s+/).filter(w => w).length;
+  const wc = document.getElementById('wordCount');
+  const hint = document.getElementById('ansHint');
+  if (wc) wc.textContent = words + ' words';
+  if (hint) {
+    if (!words) { hint.textContent = ''; return; }
+    if (words < 15) { hint.textContent = '⚠️ Too brief — elaborate more'; hint.style.color = '#f87171'; }
+    else if (words < 50) { hint.textContent = '🟡 Good start — more detail helps'; hint.style.color = '#eab308'; }
+    else { hint.textContent = '✅ Great answer depth!'; hint.style.color = '#22c55e'; }
+  }
+}
+
+function replayQuestion() {
+  if (IV.currentQ) {
+    IV.synth.cancel();
+    ariaSpeak("Of course, let me repeat that. " + IV.currentQ, null);
+  }
+}
+
+// ── Q DOTS ──
+function buildQDots(total) {
+  const el = document.getElementById('iQDots'); if (!el) return;
+  el.innerHTML = Array.from({length: total}, (_, i) =>
+    `<div id="qdot${i}" style="width:24px;height:24px;border-radius:6px;border:1.5px solid var(--border);background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted);transition:all .2s">${i+1}</div>`
+  ).join('');
+}
+function setQDot(i, state) {
+  const d = document.getElementById('qdot'+i); if (!d) return;
+  const styles = {
+    active:   { border:'var(--pulse)', color:'var(--pulse)',    bg:'rgba(0,212,255,.08)' },
+    answered: { border:'rgba(34,197,94,.4)', color:'#22c55e',   bg:'rgba(34,197,94,.07)' },
+    skipped:  { border:'rgba(255,107,43,.3)', color:'#ff6b2b',  bg:'transparent' },
+  };
+  const s = styles[state] || { border:'var(--border)', color:'var(--muted)', bg:'var(--card2)' };
+  d.style.borderColor = s.border; d.style.color = s.color; d.style.background = s.bg;
+}
+
+// ── AI TRANSITION BETWEEN QUESTIONS ──
+// ARIA reacts to the previous answer naturally, then asks the next question.
+// This is what makes her feel like a real HR person, not a bot.
+async function ariaTransition(prevQuestion, prevAnswer, nextQuestion, onEnd) {
+  // Build a prompt asking AI to react to what was said and bridge to next question
+  const answerSnippet = (prevAnswer || '[no answer given]').slice(0, 300);
+
+  const prompt = `You are ARIA, a senior HR director in a real office interview.
+The candidate just finished answering a question.
+
+Previous question: "${prevQuestion}"
+What the candidate said: "${answerSnippet}"
+
+Now you need to:
+1. React to their answer in 1 short natural sentence (like a real person would — not "Perfect!" or "Great answer!", just a genuine human reaction)
+2. Then move to the next question: "${nextQuestion}"
+
+Combine both into one natural spoken response. Keep it under 3 sentences total.
+Sound warm, professional, human — like you're actually sitting across from them.
+Do NOT say "Perfect", "Excellent", "Great answer", "Wonderful", "Fantastic".
+If they said they don't know → acknowledge it warmly and move on.
+If they gave a good answer → show brief genuine interest before moving on.
+Reply with ONLY the spoken text. No labels, no JSON, nothing else.`;
+
+  setAriaStatus('speaking', 'ARIA is responding…');
+  setAvatarRing('pulse-blue');
+
+  try {
+    const res = await Promise.race([
+      fetch(GROQ_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_API_KEY },
+        body: JSON.stringify({
+          model: 'llama-3.1-8b-instant',
+          max_tokens: 80,
+          temperature: 0.5,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 3000))
+    ]);
+    const data = await res.json();
+    const transition = (data.choices?.[0]?.message?.content || '').trim();
+    if (transition && transition.length > 5) {
+      ariaSpeak(transition, onEnd);
+      return;
+    }
+  } catch(e) {
+    // timeout or error — fall back to just asking the next question naturally
+  }
+
+  // Fallback — just ask the next question without a transition
+  ariaSpeak(nextQuestion, onEnd);
+}
+
+// ── TIMER ──
+function startQuestionTimer(seconds) {
+  clearInterval(IV.timerInterval);
+  let secs = seconds;
+  const update = () => {
+    const m = Math.floor(secs/60), s2 = String(secs%60).padStart(2,'0');
+    const disp = document.getElementById('timerDisp');
+    const fg = document.getElementById('timerFg');
+    if (disp) { disp.textContent = m+':'+s2; disp.style.color = secs<=30?'#f87171':secs<=60?'#eab308':'var(--pulse)'; }
+    if (fg) { fg.style.width=(secs/seconds*100)+'%'; fg.style.background=secs<=30?'var(--fire)':secs<=60?'#eab308':'var(--pulse)'; }
+  };
+  update();
+  IV.timerInterval = setInterval(() => {
+    if (IV.isSpeaking) return; // pause while ARIA speaks
+    secs--;
+    update();
+    if (secs <= 0) { clearInterval(IV.timerInterval); toast('⏰ Time\'s up — moving on…'); nextQ(); }
+  }, 1000);
+}
+
+// ── CSS KEYFRAMES (injected once) ──
+(function injectInterviewCSS() {
+  if (document.getElementById('iv-css')) return;
+  const s = document.createElement('style');
+  s.id = 'iv-css';
+  s.textContent = `
+    @keyframes ring-pulse-iv{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.1);opacity:.3}}
+    @keyframes ring-pulse-g-iv{0%,100%{transform:scale(1);opacity:.9}50%{transform:scale(1.1);opacity:.3}}
+    @keyframes mic-pulse-iv{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}70%{box-shadow:0 0 0 16px rgba(239,68,68,0)}}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+    @keyframes bubble-pop{0%{transform:scale(.85) translateY(4px);opacity:0}100%{transform:scale(1) translateY(0);opacity:1}}
+    #ansBox:empty::before{content:attr(data-placeholder);color:#475569;font-style:italic;pointer-events:none}
+    #ansBox:empty{color:#475569}
+    #ariaBubbleLive{animation:none}
+    #ariaBubbleLive[style*="opacity: 1"]{animation:bubble-pop .3s ease forwards}
+    .aria-bc-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--pulse);animation:blink .6s ease-in-out infinite;margin-right:6px}
+  `;
+  document.head.appendChild(s);
+})();
+
+// ════════════════════════════════════════
+// MAIN INTERVIEW FLOW
+// ════════════════════════════════════════
+async function startInterview() {
+  initAriaVoice(); // init voice lazily on first use
+  const btn = document.getElementById('startBtn');
+  btn.textContent = '🤖 Generating your interview…'; btn.disabled = true;
+
+  const role = APP.profile.target_role || 'Software Engineer';
+  const candidateName = APP.profile.first_name || 'there';
+  const ats = APP.profile.ats_score || 60;
+  const skills = APP.lastExtracted?.keywords_found || [];
+  const missing = APP.lastExtracted?.keywords_missing || [];
+
+  const qCount = parseInt(document.getElementById('iQCount')?.value || '10');
+  const nTech = Math.max(1, Math.floor(qCount * 0.3));
+  const nBeh  = Math.max(1, Math.floor(qCount * 0.3));
+  const nSit  = Math.max(1, Math.floor(qCount * 0.2));
+  // remaining = intro(2) + career(1) + closing(1)
+  // Build a real-interview question set
+  const prompt = `You are a senior HR director writing a real office job interview script for the role: "${role}".
+Candidate name: ${candidateName}. ATS: ${ats}%. Skills: ${skills.join(', ')||'general'}. Gaps: ${missing.join(', ')||'none'}.
+
+Write EXACTLY ${qCount} interview questions that a real HR director would ask face-to-face.
+STRICT RULES:
+- Question 1 MUST be: "Tell me a little about yourself." (Intro)
+- Question 2 MUST be: "Can you walk me through your experience relevant to this ${role} role?" (Intro)
+- Questions 3 to ${2+nTech}: ${nTech} technical questions specific to ${role} and their skills
+- Questions ${3+nTech} to ${2+nTech+nBeh}: ${nBeh} behavioural "Tell me about a time…" questions
+- Questions ${3+nTech+nBeh} to ${2+nTech+nBeh+nSit}: ${nSit} situational workplace scenario questions
+- Second to last question: "Where do you see yourself in the next few years?" (Career)
+- Last question: "Do you have any questions for me?" (Closing)
+
+TONE: Natural, warm, conversational — exactly how a real HR person speaks in an interview room.
+Do NOT use corporate jargon. Write questions as you would actually SAY them out loud.
+Each question must be unique and tailored to ${role}.
+Include a short coaching tip for each.
+
+Respond ONLY with valid JSON, no markdown fences:
+{"questions":[{"q":"question as spoken","type":"Intro","difficulty":"Easy","tip":"tip"}]}
+type must be one of: Intro, Technical, Behavioural, Situational, Career, Closing
+difficulty must be one of: Easy, Medium, Hard`;
+
+  try {
+    const res = await fetch(GROQ_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_API_KEY},
+      body: JSON.stringify({model:GROQ_MODEL, max_tokens:2200, messages:[{role:'user',content:prompt}]})
+    });
+    const data = await res.json();
+    const raw = data.choices?.[0]?.message?.content || '';
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const si = clean.indexOf('{'), ei = clean.lastIndexOf('}');
+    const parsed = JSON.parse(clean.slice(si,ei+1));
+    APP.interviewQs = parsed.questions;
+    if (APP.interviewQs.length < 5) throw new Error('Too few');
+  } catch(e) {
+    console.warn('AI Q gen failed, using fallback:', e.message);
+    APP.interviewQs = buildFallbackQuestions(role, candidateName, skills);
+  }
+
+  APP.interviewStarted = true;
+  APP.answers = [];
+  APP.curQ = 0;
+  APP.qFeedback = [];
+  IV.questionCount = APP.interviewQs.length;
+
+  document.getElementById('iStart').style.display = 'none';
+  document.getElementById('iRoom').style.display = 'block';
+  document.getElementById('qTotal').textContent = APP.interviewQs.length;
+
+  buildQDots(APP.interviewQs.length);
+
+  // ARIA opening greeting — warm, natural, like she is in the room
+  const greeting = `Hi ${candidateName}, I'm ARIA , I've had a look through your profile — really interesting background. I'm going to ask you ${APP.interviewQs.length} questions today, just like a normal conversation. There are no trick questions, just talk to me naturally. Okay? Let's begin.`;
+
+  document.getElementById('qText').textContent = greeting;
+  setAriaStatus('speaking', 'ARIA is speaking…');
+  setAvatarRing('pulse-blue');
+  document.getElementById('qBadges').innerHTML = '';
+  document.getElementById('qTip').style.display = 'none';
+  document.getElementById('nextBtn').textContent = 'Start Interview →';
+  document.getElementById('qNum').textContent = '—';
+
+  ariaSpeak(greeting, () => {
+    setTimeout(() => loadQ(0), 600);
+  });
+}
+
+function buildFallbackQuestions(role, name, skills) {
+  return [
+    {q:`Please tell me about yourself and what brought you to apply for this ${role} position.`, type:'Intro', difficulty:'Easy', tip:'Keep it professional: background, experience, motivation.'},
+    {q:`Can you walk me through your most relevant experience for this ${role} role?`, type:'Intro', difficulty:'Easy', tip:'Highlight 2-3 achievements directly tied to this role.'},
+    {q:`What is your experience with ${skills[0]||'core technologies for this role'}, and can you describe a project where you used it?`, type:'Technical', difficulty:'Medium', tip:'Be specific — name the project, your role, and the outcome.'},
+    {q:`How do you approach debugging a complex issue when you have no clear starting point?`, type:'Technical', difficulty:'Medium', tip:'Show structured thinking: reproduce, isolate, hypothesise, test.'},
+    {q:`Tell me about a technically challenging problem you solved. Walk me through your approach.`, type:'Technical', difficulty:'Hard', tip:'Explain trade-offs, what you chose and why.'},
+    {q:`Tell me about a time you had a conflict with a colleague. How did you handle it?`, type:'Behavioural', difficulty:'Medium', tip:'Use STAR — show empathy and a constructive resolution.'},
+    {q:`Describe a situation where you had to deliver results under a very tight deadline.`, type:'Behavioural', difficulty:'Medium', tip:'Show how you prioritised, communicated, and delivered.'},
+    {q:`Tell me about a time you failed at something important. What did you learn?`, type:'Behavioural', difficulty:'Medium', tip:'Interviewers value self-awareness — be honest and reflective.'},
+    {q:`You've just discovered a critical bug in production affecting thousands of users. It's 11 PM. What do you do?`, type:'Situational', difficulty:'Hard', tip:'Cover immediate action, escalation, communication, fix, post-mortem.'},
+    {q:`You're given a project with unclear requirements and a fixed deadline. How do you proceed?`, type:'Situational', difficulty:'Hard', tip:'Show stakeholder communication, scoping, and iterative delivery.'},
+    {q:`Where do you see yourself in 5 years, and how does this ${role} position fit your career goals?`, type:'Career', difficulty:'Easy', tip:'Show ambition aligned with the company\'s direction.'},
+    {q:`Do you have any questions for me about the ${role} role or our company?`, type:'Closing', difficulty:'Easy', tip:'Always have 1-2 thoughtful questions — it shows genuine interest.'},
+  ];
+}
+
+function loadQ(idx) {
+  const q = APP.interviewQs[idx];
+  if (!q) return;
+  APP.curQ = idx;
+  IV.currentQ = q.q;
+
+  // Stop recording if active
+  if (IV.isRecording) stopMic();
+  IV.synth?.cancel();
+
+  // Update dots
+  for (let i = 0; i < APP.interviewQs.length; i++) {
+    if (i < idx) setQDot(i, APP.answers[i] && APP.answers[i] !== '[Skipped]' ? 'answered' : 'skipped');
+    else if (i === idx) setQDot(i, 'active');
+  }
+
+  document.getElementById('qNum').textContent = idx + 1;
+
+  // Type badges
+  const typeColors = {
+    Technical:   {bg:'rgba(0,212,255,.1)',  color:'#00d4ff',  border:'rgba(0,212,255,.2)'},
+    Behavioural: {bg:'rgba(34,197,94,.1)',  color:'#22c55e',  border:'rgba(34,197,94,.2)'},
+    Situational: {bg:'rgba(255,107,43,.1)', color:'#ff6b2b',  border:'rgba(255,107,43,.2)'},
+    Intro:       {bg:'rgba(124,58,237,.1)', color:'#a78bfa',  border:'rgba(124,58,237,.2)'},
+    Career:      {bg:'rgba(234,179,8,.1)',  color:'#eab308',  border:'rgba(234,179,8,.2)'},
+    Closing:     {bg:'rgba(34,197,94,.08)',color:'#86efac',   border:'rgba(34,197,94,.15)'},
+  };
+  const diffColors = { Easy:'#86efac', Medium:'#a78bfa', Hard:'#f87171' };
+  const tc = typeColors[q.type] || typeColors.Technical;
+  document.getElementById('qBadges').innerHTML = `
+    <span style="font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700;background:${tc.bg};color:${tc.color};border:1px solid ${tc.border}">${q.type}</span>
+    <span style="font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700;background:rgba(255,255,255,.05);color:${diffColors[q.difficulty]||'#a78bfa'};border:1px solid rgba(255,255,255,.08)">${q.difficulty}</span>`;
+
+  // Question text
+  document.getElementById('qText').textContent = q.q;
+
+  // Tip
+  const tipEl = document.getElementById('qTip');
+  if (q.tip) { tipEl.innerHTML = `💡 <strong>Tip:</strong> ${q.tip}`; tipEl.style.display = 'block'; }
+  else tipEl.style.display = 'none';
+
+  // Clear answer box
+  const ansEl = document.getElementById('ansBox');
+  ansEl.textContent = '';
+  ansEl.setAttribute('data-placeholder', 'Your spoken answer will appear here… you can also type directly.');
+  document.getElementById('wordCount').textContent = '0 words';
+  document.getElementById('ansHint').textContent = '';
+
+  // Reset mic
+  setMicUI(false);
+
+  // Next btn label
+  document.getElementById('nextBtn').textContent = idx + 1 < APP.interviewQs.length ? 'Submit Answer →' : 'Finish Interview →';
+
+  // ARIA speaks the question
+  setAriaStatus('speaking', 'ARIA is asking question '+(idx+1)+'…');
+  setAvatarRing('pulse-blue');
+  if (idx === 0) {
+    // First question — no transition needed, just ask it
+    ariaSpeak(q.q, () => { setAvatarRing('pulse-green'); startQuestionTimer(180); });
+  } else {
+    // Ask AI for a natural 1-sentence transition based on previous answer
+    const prevAnswer = APP.answers[idx-1] || '';
+    const prevQ = APP.interviewQs[idx-1]?.q || '';
+    ariaTransition(prevQ, prevAnswer, q.q, () => {
+      setAvatarRing('pulse-green');
+      startQuestionTimer(180);
+    });
+  }
+}
+
+function startTimer() {} // replaced by startQuestionTimer
+
+async function nextQ() {
+  clearInterval(IV.timerInterval);
+  if (IV.isRecording) stopMic();
+  IV.synth?.cancel();
+  const ansEl = document.getElementById('ansBox');
+  const ans = ansEl ? (IV.finalText || ansEl.textContent.trim()) : '';
+  APP.answers.push(ans || '[No answer provided]');
+  setQDot(APP.curQ, ans && ans !== '[No answer provided]' ? 'answered' : 'skipped');
+
+  const isLast = APP.curQ + 1 >= APP.interviewQs.length;
+
+  if (isLast) {
+    // ARIA closing before evaluation
+      // AI-generate a warm personal closing based on how the interview went
+    const totalAnswered = APP.answers.filter(a => a && a !== '[Skipped]' && a !== '[No answer provided]').length;
+    const closingPrompt = `You are ARIA, a senior HR director who just finished interviewing ${APP.profile.first_name || 'the candidate'} for the ${APP.profile.target_role || 'role'} position.
+They answered ${totalAnswered} out of ${APP.interviewQs.length} questions.
+Write a warm, natural 2-sentence closing. Thank them, say it was nice meeting them, mention you'll review and be in touch.
+Do NOT say "Perfect" or "Excellent". Sound like a real person wrapping up an office interview.
+Reply with ONLY the spoken closing. Nothing else.`;
+
+    setAriaStatus('speaking', 'ARIA is speaking…');
+    setAvatarRing('pulse-blue');
+    document.getElementById('nextBtn').disabled = true;
+
+    let closing = `Thanks so much ${APP.profile.first_name || ''}, it was really nice speaking with you today. I'll review everything and we'll be in touch soon.`;
+    try {
+      const res = await Promise.race([
+        fetch(GROQ_URL, {
+          method:'POST',
+          headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_API_KEY},
+          body: JSON.stringify({ model:'llama-3.1-8b-instant', max_tokens:60, temperature:0.5,
+            messages:[{role:'user',content:closingPrompt}] })
+        }),
+        new Promise((_, rej) => setTimeout(() => rej(), 3000))
+      ]);
+      const d = await res.json();
+      const txt = (d.choices?.[0]?.message?.content || '').trim();
+      if (txt && txt.length > 10) closing = txt;
+    } catch(e) {}
+
+    ariaSpeak(closing, () => { submitInterview(); });
+  } else {
+    APP.curQ++;
+    loadQ(APP.curQ);
+  }
+}
+
+function skipQ() {
+  clearInterval(IV.timerInterval);
+  if (IV.isRecording) stopMic();
+  IV.synth?.cancel();
+  APP.answers.push('[Skipped]');
+  setQDot(APP.curQ, 'skipped');
+  if (APP.curQ + 1 < APP.interviewQs.length) {
+    APP.curQ++;
+    loadQ(APP.curQ);
+  } else {
+    submitInterview();
+  }
+}
+
+async function submitInterview() {
+  clearInterval(IV.timerInterval);
+  if (IV.isRecording) stopMic();
+  IV.synth?.cancel();
+  setAvatarRing('none');
+
+  document.getElementById('iRoom').style.display = 'none';
+  document.getElementById('iEval').style.display = 'block';
+
+  const role = APP.profile.target_role || 'Software Engineer';
+  const candidateName = (APP.profile.first_name||'') + ' ' + (APP.profile.last_name||'');
+  document.getElementById('evalRole').textContent = role;
+
+  // Build transcript
+  const transcript = APP.interviewQs.map((q, i) =>
+    `Q${i+1} [${q.type} · ${q.difficulty}]: ${q.q}\nCandidate: ${APP.answers[i] || '[Skipped / No answer]'}`
+  ).join('\n\n');
+
+  // Progress animation
+  let prog = 0;
+  const statuses = [
+    'Reading your full transcript…',
+    'Evaluating communication clarity…',
+    'Scoring technical depth…',
+    'Assessing professionalism & confidence…',
+    'Generating per-question feedback…',
+    'Preparing HR report…'
+  ];
+  let si = 0;
+  const barInt = setInterval(() => {
+    prog = Math.min(prog + 1.2, 90);
+    const bar = document.getElementById('evalBar');
+    if (bar) bar.style.width = prog + '%';
+    if (prog > si * 15 && si < statuses.length) {
+      const st = document.getElementById('evalStatus');
+      if (st) st.textContent = statuses[si++];
+    }
+  }, 130);
+
+  const evalPrompt = `You are a strict but fair senior HR director evaluating a candidate named "${candidateName}" for the role: "${role}".
+
+This was a real conversational interview conducted by an AI interviewer. Evaluate the full transcript below:
+
+${transcript}
+
+Score each answer on:
+- Relevance & completeness to the question
+- Communication clarity and confidence
+- Use of specific examples, metrics, storytelling
+- Technical/domain accuracy
+- Professionalism
+- Skipped/empty answers = score 10 max
+
+Be strict but constructive. This report goes directly to HR.
+
+Respond ONLY with valid JSON:
+{
+  "overall_score": <integer 0-100>,
+  "communication_score": <0-100>,
+  "technical_score": <0-100>,
+  "professionalism_score": <0-100>,
+  "feedback": [
+    {"q_num":1,"score":<0-100>,"verdict":"Good","comment":"1-2 sentence specific feedback"}
+  ],
+  "strengths": "2-3 sentences on what the candidate did well",
+  "improvements": "2-3 sentences on specific areas to improve with actionable advice",
+  "hire_recommendation": "Strong Yes / Yes / Maybe / No",
+  "hr_summary": "3-4 sentence executive summary for the HR team about this candidate"
+}
+verdict must be exactly: Good, Average, or Weak`;
+
+  try {
+    const res = await fetch(GROQ_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+GROQ_API_KEY},
+      body: JSON.stringify({model:GROQ_MODEL, max_tokens:1500, messages:[{role:'user',content:evalPrompt}]})
+    });
+    const data = await res.json();
+    const raw = data.choices?.[0]?.message?.content || '';
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const si2 = clean.indexOf('{'), ei = clean.lastIndexOf('}');
+    APP.evalResult = JSON.parse(clean.slice(si2,ei+1));
+  } catch(e) {
+    console.warn('AI eval failed, using local scoring:', e);
+    const scores = APP.answers.map(a => {
+      if (!a || a === '[Skipped]' || a === '[No answer provided]') return 10;
+      const words = a.trim().split(/\s+/).length;
+      const hasEx = /example|time|when|project|led|built|achieved|result/i.test(a);
+      const hasNum = /\d/.test(a);
+      return Math.min(92, Math.round(20 + Math.min(45, words * 0.6) + (hasEx?15:0) + (hasNum?10:0)));
+    });
+    const overall = Math.round(scores.reduce((a,b)=>a+b,0)/scores.length);
+    APP.evalResult = {
+      overall_score: overall, communication_score: overall, technical_score: overall, professionalism_score: overall,
+      feedback: scores.map((sc,i) => ({q_num:i+1, score:sc, verdict: sc>=70?'Good':sc>=45?'Average':'Weak', comment: sc>=70?'Good answer with solid structure.':sc>=45?'Decent but needs more specific examples.':'Too brief or skipped.'})),
+      strengths:'Candidate completed the interview and responded to most questions.',
+      improvements:'Focus on giving more specific examples with measurable outcomes.',
+      hire_recommendation: overall>=70?'Yes':overall>=50?'Maybe':'No',
+      hr_summary:`${candidateName} completed a ${APP.interviewQs.length}-question live voice interview for ${role}. Overall score: ${overall}%. ${overall>=70?'Showed good potential and communication.':'Needs further evaluation.'}`
+    };
+  }
+
+  clearInterval(barInt);
+  document.getElementById('evalBar').style.width = '100%';
+  await new Promise(r => setTimeout(r, 700));
+
+  const finalScore = APP.evalResult.overall_score;
+
+  // ── SAVE TO SUPABASE — only interview_score column (guaranteed to exist) ──
+  try {
+    await sb.from('profiles').update({
+      interview_score: finalScore
+    }).eq('id', APP.user.id);
+  } catch(e) { console.warn('DB save skipped:', e); }
+
+  // ── SAVE FULL EVAL TO localStorage (no schema changes needed) ──
+  try {
+    localStorage.setItem('sp_eval_' + APP.user.id, JSON.stringify({
+      score: finalScore,
+      communication: APP.evalResult.communication_score,
+      technical: APP.evalResult.technical_score,
+      professionalism: APP.evalResult.professionalism_score,
+      recommendation: APP.evalResult.hire_recommendation,
+      hr_summary: APP.evalResult.hr_summary,
+      strengths: APP.evalResult.strengths,
+      improvements: APP.evalResult.improvements,
+      feedback: APP.evalResult.feedback,
+      completed_at: new Date().toISOString(),
+      role: role,
+      q_count: APP.interviewQs.length,
+      transcript: transcript.slice(0, 6000),
+    }));
+  } catch(e) {}
+
+  APP.profile.interview_score = finalScore;
+  document.getElementById('iEval').style.display = 'none';
+  document.getElementById('iDone').style.display = 'block';
+
+  showReport(finalScore);
+  renderUI();
+  toast('🏆 Interview complete! Score: ' + finalScore + '% — sent to HR', 7000);
+}
+
+/* ══ REPORT ══ */
+function renderScoreReport() {
+  // Called every time user navigates to Score Report tab
+  const p = APP.profile;
+  const ats = p.ats_score;
+  const intScore = p.interview_score;
+
+  if (!ats && !intScore) {
+    // Nothing done yet
+    document.getElementById('repEmpty').style.display = 'block';
+    document.getElementById('repContent').style.display = 'none';
+    return;
+  }
+
+  // Has data — show content
+  document.getElementById('repEmpty').style.display = 'none';
+  document.getElementById('repContent').style.display = 'block';
+
+  const overall = ats && intScore ? Math.round((ats + intScore) / 2) : (ats || intScore || 0);
+
+  document.getElementById('rep-ats').textContent     = ats ? ats + '%' : '—';
+  document.getElementById('rep-ats-g').textContent   = ats ? (ats >= 80 ? '🟢 Excellent' : ats >= 65 ? '🟡 Good' : '🔴 Needs Work') : 'Not done yet';
+  document.getElementById('rep-int').textContent     = intScore ? intScore + '%' : '—';
+  document.getElementById('rep-int-g').textContent   = intScore ? (intScore >= 80 ? '🟢 Excellent' : intScore >= 65 ? '🟡 Good' : '🔴 Needs Work') : 'Not done yet';
+  document.getElementById('rep-overall').textContent = overall ? overall + '%' : '—';
+  document.getElementById('rep-overall-g').textContent = overall >= 80 ? '🏆 Job-Ready' : overall >= 65 ? '⚡ Almost There' : overall ? '📚 Keep Improving' : '—';
+
+  // Company recs
+  const cos = COMPANIES.filter(c => c.match >= 75).slice(0, 4);
+  const compEl = document.getElementById('companyRecs');
+  if (compEl) compEl.innerHTML = cos.map(c =>
+    `<div class="company-card" style="margin-bottom:8px">
+      <div style="font-size:22px">${c.logo}</div>
+      <div class="co-info"><div class="co-name">${c.name}</div><div class="co-meta">${c.match}% match · ${c.salary}</div></div>
+    </div>`).join('');
+
+  // Skills to learn
+  const missing = APP.lastExtracted?.keywords_missing || ['Docker','Kubernetes','TypeScript','CI/CD','System Design'];
+  const skillEl = document.getElementById('skillsLearn');
+  if (skillEl) skillEl.innerHTML = missing.map(sk => `<span class="chip cn">${sk}</span>`).join('');
+
+  // Radar chart
+  requestAnimationFrame(() => {
+    if (APP.repChart) { try { APP.repChart.destroy(); } catch(e) {} APP.repChart = null; }
+    const ctx = document.getElementById('repChart')?.getContext('2d');
+    if (ctx && window.Chart) {
+      APP.repChart = new Chart(ctx, {
+        type: 'radar',
+        data: {
+          labels: ['Keywords','Formatting','Experience','Skills','Interview'],
+          datasets:[{
+            label:'Your Score',
+            data:[ats||0, Math.min(100,(ats||0)+5), Math.max(10,(ats||0)-5), ats||0, intScore||0],
+            backgroundColor:'rgba(0,212,255,.1)', borderColor:'#00d4ff',
+            pointBackgroundColor:'#00d4ff', borderWidth:2,
+          }]
+        },
+        options:{ scales:{ r:{ beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,.07)'},
+          ticks:{color:'#64748b',font:{size:10}}, pointLabels:{color:'#94a3b8',font:{size:12}} } },
+          plugins:{legend:{display:false}} }
+      });
+    }
+  });
+
+  // If we have eval result from this session, also show Q breakdown
+  if (APP.evalResult) showReport(intScore);
+}
+
+function showReport(intScore) {
+  const evalRes = APP.evalResult;
+  if (evalRes && document.getElementById('iDone').style.display !== 'none') {
+    const recMap = {
+      'Strong Yes': { color:'#22c55e', bg:'rgba(34,197,94,.12)', icon:'🌟', border:'rgba(34,197,94,.25)' },
+      'Yes':        { color:'#22c55e', bg:'rgba(34,197,94,.09)', icon:'✅', border:'rgba(34,197,94,.2)' },
+      'Maybe':      { color:'#eab308', bg:'rgba(234,179,8,.1)',  icon:'⚖️', border:'rgba(234,179,8,.2)' },
+      'No':         { color:'#f87171', bg:'rgba(248,113,113,.1)',icon:'❌', border:'rgba(248,113,113,.2)' },
+    };
+    const rm = recMap[evalRes.hire_recommendation] || recMap['Maybe'];
+    const subScores = [
+      { label:'Communication', val: evalRes.communication_score || intScore, icon:'🗣️' },
+      { label:'Technical',     val: evalRes.technical_score || intScore,     icon:'🔧' },
+      { label:'Professionalism', val: evalRes.professionalism_score || intScore, icon:'🤝' },
+    ];
+
+    document.getElementById('iDone').innerHTML = `
+      <div style="max-width:680px">
+        <!-- Score Header -->
+        <div style="text-align:center;margin-bottom:28px;padding:28px;background:var(--card);border:1px solid var(--border);border-radius:18px">
+          <div style="font-size:52px;margin-bottom:12px">${intScore>=80?'🏆':intScore>=65?'⭐':intScore>=50?'📈':'📚'}</div>
+          <div style="font-size:38px;font-weight:800;color:#fff;margin-bottom:6px">${intScore}%</div>
+          <div style="font-size:14px;color:var(--muted2);margin-bottom:16px">${intScore>=80?'Outstanding performance!':intScore>=65?'Good performance!':intScore>=50?'Decent effort — room to improve':'Needs significant improvement'}</div>
+          <div style="display:inline-flex;align-items:center;gap:8px;padding:8px 20px;background:${rm.bg};border:1px solid ${rm.border};border-radius:100px;margin-bottom:16px">
+            <span style="font-size:14px">${rm.icon}</span>
+            <span style="font-size:14px;font-weight:700;color:${rm.color}">HR Recommendation: ${evalRes.hire_recommendation}</span>
+          </div>
+          <!-- Sub-scores -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:4px">
+            ${subScores.map(s => `<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:12px;text-align:center">
+              <div style="font-size:18px;margin-bottom:4px">${s.icon}</div>
+              <div style="font-size:18px;font-weight:800;color:${s.val>=70?'#22c55e':s.val>=50?'#eab308':'#f87171'}">${s.val}%</div>
+              <div style="font-size:10px;color:var(--muted);margin-top:2px">${s.label}</div>
+            </div>`).join('')}
+          </div>
+        </div>
+
+        <!-- HR Summary box -->
+        ${evalRes.hr_summary ? `<div style="background:rgba(124,58,237,.07);border:1px solid rgba(124,58,237,.2);border-radius:14px;padding:18px;margin-bottom:16px">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#a78bfa;font-weight:700;margin-bottom:8px">📤 HR Report Summary — Sent to HR</div>
+          <div style="font-size:13.5px;color:var(--muted2);line-height:1.75">${evalRes.hr_summary}</div>
+        </div>` : ''}
+
+        <!-- Strengths + Improvements -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+          <div style="background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.15);border-radius:12px;padding:16px">
+            <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:8px">💪 Strengths</div>
+            <div style="font-size:13px;color:var(--muted2);line-height:1.7">${evalRes.strengths}</div>
+          </div>
+          <div style="background:rgba(255,107,43,.05);border:1px solid rgba(255,107,43,.15);border-radius:12px;padding:16px">
+            <div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:8px">🎯 Improve</div>
+            <div style="font-size:13px;color:var(--muted2);line-height:1.7">${evalRes.improvements}</div>
+          </div>
+        </div>
+
+        <!-- Per-question breakdown -->
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px">
+          <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:16px">📋 Question-by-Question Breakdown</div>
+          ${(evalRes.feedback||[]).map((fb, i) => {
+            const q = APP.interviewQs?.[i];
+            const ans = APP.answers?.[i] || '';
+            const vc = fb.verdict==='Good'?'#22c55e':fb.verdict==='Average'?'#eab308':'#f87171';
+            const vbg = fb.verdict==='Good'?'rgba(34,197,94,.1)':fb.verdict==='Average'?'rgba(234,179,8,.1)':'rgba(248,113,113,.1)';
+            const barW = fb.score || 0;
+            const barC = barW>=70?'#22c55e':barW>=50?'#eab308':'#f87171';
+            return `<div style="border-bottom:1px solid var(--border);padding:14px 0;${i===0?'padding-top:0':''}${i===(evalRes.feedback.length-1)?';border-bottom:none':''}">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:6px">
+                <div style="font-size:13px;color:#fff;font-weight:600;flex:1">Q${fb.q_num}: ${q?q.q.slice(0,85)+'…':'Question '+fb.q_num}</div>
+                <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+                  <span style="font-size:12px;font-weight:700;color:${vc};padding:2px 10px;background:${vbg};border-radius:20px">${fb.verdict}</span>
+                  <span style="font-size:15px;font-weight:800;color:${vc}">${fb.score}%</span>
+                </div>
+              </div>
+              <div style="height:4px;background:rgba(255,255,255,.06);border-radius:3px;margin-bottom:8px;overflow:hidden">
+                <div style="height:100%;width:${barW}%;background:${barC};border-radius:3px;transition:width .6s ease"></div>
+              </div>
+              <div style="font-size:12px;color:var(--muted2);line-height:1.6;margin-bottom:${ans&&ans!=='[Skipped]'?'6px':'0'}">${fb.comment}</div>
+              ${ans&&ans!=='[Skipped]'&&ans!=='[No answer provided]'?`<div style="font-size:12px;color:var(--muted);font-style:italic;background:rgba(255,255,255,.03);padding:8px 12px;border-radius:7px;border-left:2px solid var(--border)">"${ans.slice(0,120)}${ans.length>120?'…':''}"</div>`:''}
+            </div>`;
+          }).join('')}
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button class="btn bp" style="flex:1" onclick="go('report')">📊 Full Score Report →</button>
+          <button class="btn bo" onclick="go('resume')">📄 Re-analyze Resume</button>
+        </div>
+      </div>`;
+  }
+
+  // Also populate Score Report page
+  document.getElementById('repEmpty').style.display = 'none';
+  document.getElementById('repContent').style.display = 'block';
+  const ats = APP.profile.ats_score || 0;
+  const overall = Math.round((ats + intScore) / 2);
+  document.getElementById('rep-ats').textContent = ats + '%';
+  document.getElementById('rep-ats-g').textContent = ats >= 80 ? '🟢 Excellent' : ats >= 65 ? '🟡 Good' : '🔴 Needs Work';
+  document.getElementById('rep-int').textContent = intScore + '%';
+  document.getElementById('rep-int-g').textContent = intScore >= 80 ? '🟢 Excellent' : intScore >= 65 ? '🟡 Good' : '🔴 Needs Work';
+  document.getElementById('rep-overall').textContent = overall + '%';
+  document.getElementById('rep-overall-g').textContent = overall >= 80 ? '🏆 Job-Ready' : overall >= 65 ? '⚡ Almost There' : '📚 Keep Improving';
+
+  const cos = COMPANIES.filter(c => c.match >= 75).slice(0, 4);
+  document.getElementById('companyRecs').innerHTML = cos.map(c =>
+    `<div class="company-card" style="margin-bottom:8px">
+      <div style="font-size:22px">${c.logo}</div>
+      <div class="co-info"><div class="co-name">${c.name}</div><div class="co-meta">${c.match}% match · ${c.salary}</div></div>
+    </div>`).join('');
+
+  const missing = APP.lastExtracted?.keywords_missing || ['Docker','Kubernetes','TypeScript','CI/CD','System Design'];
+  document.getElementById('skillsLearn').innerHTML = missing.map(sk => `<span class="chip cn">${sk}</span>`).join('');
+
+  if (APP.repChart) APP.repChart.destroy();
+  const ctx = document.getElementById('repChart')?.getContext('2d');
+  if (ctx) APP.repChart = new Chart(ctx, {
+    type: 'radar',
+    data: {
+      labels: ['Keywords', 'Formatting', 'Experience', 'Skills', 'Interview'],
+      datasets: [{
+        label: 'Your Score',
+        data: [ats, Math.min(100,ats+5), Math.max(10,ats-5), ats, intScore],
+        backgroundColor: 'rgba(0,212,255,.1)',
+        borderColor: '#00d4ff',
+        pointBackgroundColor: '#00d4ff',
+        borderWidth: 2,
+      }]
+    },
+    options: { scales: { r: { beginAtZero:true, max:100, grid:{color:'rgba(255,255,255,.07)'}, ticks:{color:'#64748b',font:{size:10}}, pointLabels:{color:'#94a3b8',font:{size:12}} } }, plugins:{legend:{display:false}} }
+  });
+}
+
+/* ══ CHARTS ══ */
+function initCharts() {
+  // Skill trends
+  const tCtx = document.getElementById('trendChart')?.getContext('2d');
+  if (tCtx) new Chart(tCtx, {
+    type: 'bar',
+    data: {
+      labels: ['Python', 'React', 'AWS', 'TypeScript', 'Docker', 'LLMs', 'Kubernetes', 'Rust'],
+      datasets: [{ data: [94, 89, 87, 83, 81, 78, 74, 62], backgroundColor: '#00d4ff', borderRadius: 6, borderSkipped: false }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,.05)' } }, y: { beginAtZero: true, max: 100, ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,.05)' } } }, indexAxis: 'y' }
+  });
+
+  const dCtx = document.getElementById('declChart')?.getContext('2d');
+  if (dCtx) new Chart(dCtx, {
+    type: 'bar',
+    data: {
+      labels: ['jQuery', 'PHP', 'AngularJS', 'SVN', 'Flash', 'COBOL', 'Perl', 'Ruby'],
+      datasets: [{ data: [41, 38, 34, 29, 15, 12, 11, 22], backgroundColor: '#f87171', borderRadius: 6, borderSkipped: false }]
+    },
+    options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,.05)' } }, y: { beginAtZero: true, max: 100, ticks: { color: '#64748b' }, grid: { color: 'rgba(255,255,255,.05)' } } }, indexAxis: 'y' }
+  });
+
+  // Trends table
+  const skills = [
+    ['LLMs / Gen AI',    96, '+67%', '₹28L', 'AI'],
+    ['RAG / Embeddings', 91, '+58%', '₹26L', 'AI'],
+    ['Python',           94, '+24%', '₹22L', 'Data'],
+    ['Rust',             72, '+45%', '₹26L', 'Systems'],
+    ['Kubernetes',       82, '+38%', '₹23L', 'DevOps'],
+    ['Vector Databases', 78, '+52%', '₹24L', 'AI'],
+    ['TypeScript',       83, '+29%', '₹19L', 'Frontend'],
+    ['Go (Golang)',       75, '+34%', '₹22L', 'Backend'],
+    ['AWS',              87, '+17%', '₹24L', 'Cloud'],
+    ['React / Next.js',  89, '+18%', '₹18L', 'Frontend'],
+    ['Terraform / IaC',  71, '+31%', '₹22L', 'DevOps'],
+    ['Docker',           81, '+12%', '₹20L', 'DevOps'],
+    ['Apache Kafka',     68, '+22%', '₹21L', 'Backend'],
+    ['FastAPI',          66, '+19%', '₹20L', 'Backend'],
+    ['dbt',              61, '+26%', '₹20L', 'Data'],
+    ['GraphQL',          59, '+14%', '₹18L', 'Frontend'],
+    ['PostgreSQL',       76, '+11%', '₹17L', 'Data'],
+    ['Spark/Databricks', 64, '+21%', '₹24L', 'Data'],
+    ['jQuery',           28, '-18%', '₹8L',  'Legacy'],
+    ['PHP / Laravel',    31, '-12%', '₹9L',  'Legacy'],
+  ];
+  document.getElementById('trendTable').innerHTML = skills.map(([s, d, c, sal, cat], i) => {
+    const isDecl = c.startsWith('-');
+    const barColor = isDecl ? '#f87171' : 'var(--pulse)';
+    const cClass   = isDecl ? 'dn' : 'up';
+    const catColor = isDecl ? 'background:rgba(248,113,113,.12);color:#f87171' : cat==='AI'?'background:rgba(0,212,255,.12);color:#00d4ff' : 'background:rgba(124,58,237,.12);color:#a78bfa';
+    return `<tr>
+      <td style="color:#64748b;font-size:12px;font-weight:600">${String(i+1).padStart(2,'0')}</td>
+      <td><strong style="color:#fff">${s}</strong></td>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <div style="height:6px;width:${Math.round(d*0.8)}px;background:${barColor};border-radius:3px;min-width:4px"></div>
+        <span style="color:${isDecl?'#f87171':'#e2e8f0'};font-weight:600">${d}</span>
+      </div></td>
+      <td><span style="font-weight:700" class="${cClass}">${c}</span></td>
+      <td style="font-weight:600">${sal}</td>
+      <td><span style="font-size:11px;padding:3px 8px;border-radius:5px;font-weight:700;${catColor}">${cat}</span></td>
+    </tr>`;
+  }).join('');
+
+  // City chart
+  const cCtx = document.getElementById('cityChart')?.getContext('2d');
+  if (cCtx) new Chart(cCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Bangalore', 'Mumbai', 'Hyderabad', 'Pune', 'Chennai', 'Delhi NCR'],
+      datasets: [{ data: [34, 22, 18, 12, 9, 5], backgroundColor: ['#00d4ff','#7c3aed','#22c55e','#f59e0b','#f472b6','#f87171'], borderWidth: 0 }]
+    },
+    options: { plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } }, cutout: '65%' }
+  });
+
+  const rCtx = document.getElementById('roleChart')?.getContext('2d');
+  if (rCtx) new Chart(rCtx, {
+    type: 'pie',
+    data: {
+      labels: ['Software Eng.', 'Data / ML', 'DevOps', 'Product', 'Design', 'Other'],
+      datasets: [{ data: [38, 21, 15, 12, 8, 6], backgroundColor: ['#00d4ff','#7c3aed','#22c55e','#f59e0b','#f472b6','#64748b'], borderWidth: 0 }]
+    },
+    options: { plugins: { legend: { labels: { color: '#94a3b8', font: { size: 11 } } } } }
+  });
+}
+
+/* ══ PROFILE SAVE ══ */
+async function saveProfile() {
+  const fn = document.getElementById('pFN').value.trim();
+  const ln = document.getElementById('pLN').value.trim();
+  const role = document.getElementById('pRole').value;
+  const bio = document.getElementById('pBio').value.trim();
+  const { error } = await sb.from('profiles').update({ first_name: fn, last_name: ln, target_role: role }).eq('id', APP.user.id);
+  if (error) { toast('❌ ' + error.message); return; }
+  APP.profile = { ...APP.profile, first_name: fn, last_name: ln, target_role: role, bio };
+  try { localStorage.setItem('sp_bio_' + APP.user.id, bio); } catch(e) {}
+  renderUI();
+  toast('✅ Profile updated!');
+}
+
+/* ══ HELPERS ══ */
+function clamp(v) { return Math.max(5, Math.min(100, Math.round(v))); }
+
+function setBar(id, v) {
+  document.getElementById('b' + id).style.width = v + '%';
+  document.getElementById('p' + id).textContent = v + '%';
+}
+
+function animateScore(target) {
+  let cur = 0;
+  const el = document.getElementById('scoreNum');
+  const circ = document.getElementById('scoreCircle');
+  const iv = setInterval(() => {
+    if (cur >= target) { clearInterval(iv); return; }
+    cur++;
+    el.textContent = cur;
+    const d = (cur / 100) * 360;
+    const c = cur >= 85 ? '#22c55e' : cur >= 70 ? '#eab308' : '#f87171';
+    circ.style.background = `conic-gradient(${c} ${d}deg,var(--card2) ${d}deg)`;
+  }, 16);
+}
+
+function toast(msg, dur = 4000) {
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  wrap.appendChild(t);
+  requestAnimationFrame(() => { t.classList.add('show'); });
+  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, dur);
+}
+
+
+/* ── DELETE ACCOUNT ── */
+function confirmDeleteAccount() {
+  const modal = document.getElementById('deleteAccountModal');
+  if (modal) modal.style.display = 'flex';
+}
+function cancelDeleteAccount() {
+  const modal = document.getElementById('deleteAccountModal');
+  if (modal) modal.style.display = 'none';
+}
+async function doDeleteAccount() {
+  const btn = document.getElementById('deleteConfirmBtn');
+  if (btn) { btn.textContent = 'Deleting…'; btn.disabled = true; }
+
+  try {
+    const { data: session } = await sb.auth.getSession();
+    if (!session.session) throw new Error('Not logged in');
+
+    const userId = session.session.user.id;
+
+    // Delete profile row from Supabase
+    const { error: profileErr } = await sb.from('profiles').delete().eq('id', userId);
+    if (profileErr) throw profileErr;
+
+    // Call Supabase edge function or admin API to delete auth user
+    // Since we don't have admin API on client, we sign out and show message
+    // The profile is deleted — without profile, user is effectively removed from the app
+    await sb.auth.signOut({ scope: 'local' });
+    localStorage.clear();
+    sessionStorage.clear();
+
+    // Redirect with message
+    location.replace('login.html?deleted=1');
+  } catch(err) {
+    console.error('Delete error:', err);
+    if (btn) { btn.textContent = 'Delete My Account'; btn.disabled = false; }
+    showToast('❌ Error: ' + err.message, 'error');
+    cancelDeleteAccount();
+  }
+}
+
+async function doLogout() {
+  try { await sb.auth.signOut({ scope: 'local' }); } catch(e) {}
+  localStorage.clear();
+  sessionStorage.clear();
+  Object.keys(localStorage).forEach(k => {
+    if (k.includes('supabase') || k.includes('skillpulse')) localStorage.removeItem(k);
+  });
+  location.replace('login.html?lo=1');
+}
+
+document.getElementById('sendModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeModal(); });
+function initAssessPage() {
+  // If already actively running an assessment, don't reset
+  if (typeof AS !== 'undefined' && AS.active) return;
+
+  const email = APP?.user?.email || '';
+  const isAdmin = email === 'chaithanya06gutti@gmail.com';
+  const unlocked = APP?.profile?.assessment_unlocked === true;
+
+  if (isAdmin || unlocked) {
+    showScreen('screenConfig');
+  } else {
+    showScreen('screenLocked');
+    const nm = document.getElementById('lmName');
+    if (nm) nm.textContent = email.split('@')[0] || '—';
+  }
+}
+async function loadUserJobs() {
+  const el = document.getElementById('userJobsList');
+  if (!el) return;
+  el.innerHTML = '<div class="panel" style="text-align:center;padding:40px;color:var(--muted)">Loading job openings…</div>';
+
+  let jobs = [];
+
+  // ── METHOD 1: Direct REST fetch with AbortController (3s hard timeout) ──
+  // This bypasses supabase-js entirely and always resolves
+  try {
+    const ctrl = new AbortController();
+    const tid = setTimeout(() => ctrl.abort(), 3000);
+    const res = await fetch(
+      SB_URL + '/rest/v1/job_postings?select=*&order=created_at.desc',
+      {
+        signal: ctrl.signal,
+        headers: {
+          'apikey': SB_KEY,
+          'Authorization': 'Bearer ' + SB_KEY,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    clearTimeout(tid);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length) {
+        jobs = data;
+        try { localStorage.setItem('sp_job_postings_cache', JSON.stringify(data)); } catch(e) {}
+      }
+    }
+  } catch(e) {
+    if (e.name !== 'AbortError') console.warn('Jobs REST fetch:', e.message);
+  }
+
+  // ── METHOD 2: localStorage cache (always instant) ──
+  if (!jobs.length) {
+    for (const k of ['sp_job_postings_cache', 'sp_job_postings']) {
+      try {
+        const raw = localStorage.getItem(k);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed) && parsed.length) { jobs = parsed; break; }
+        }
+      } catch(e) {}
+    }
+  }
+
+  // ── RENDER ──
+  if (!jobs.length) {
+    el.innerHTML = `<div class="panel" style="text-align:center;padding:48px">
+      <div style="font-size:48px;margin-bottom:16px">📭</div>
+      <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:8px">No Job Openings Yet</div>
+      <div style="color:var(--muted);font-size:14px">HR hasn't posted any openings yet. Check back soon!</div>
+      <button onclick="loadUserJobs()" style="margin-top:16px;padding:9px 20px;background:var(--card);border:1.5px solid var(--border2);border-radius:9px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;font-family:var(--ff)">🔄 Retry</button>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = jobs.map(j => {
+    const skills = Array.isArray(j.skills) ? j.skills : (j.skills||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const posted = j.created_at ? new Date(j.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '';
+    return `<div class="panel" style="margin-bottom:16px;border:1px solid rgba(0,212,255,.12);transition:border-color .25s"
+      onmouseover="this.style.borderColor='rgba(0,212,255,.35)'"
+      onmouseout="this.style.borderColor='rgba(0,212,255,.12)'">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:5px">${j.title||'Untitled'}</div>
+          <div style="font-size:13px;color:var(--muted)">${[j.department,j.location,j.experience].filter(Boolean).join(' · ')}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span style="font-size:11px;color:var(--muted)">${posted}</span>
+          <span style="background:rgba(34,197,94,.12);color:#22c55e;border:1px solid rgba(34,197,94,.25);padding:4px 12px;border-radius:100px;font-size:12px;font-weight:600">● Hiring</span>
+        </div>
+      </div>
+      ${skills.length ? `<div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:14px">${skills.map(s=>`<span style="background:rgba(0,212,255,.1);color:var(--pulse);border:1px solid rgba(0,212,255,.2);padding:3px 10px;border-radius:6px;font-size:12px;font-weight:600">${s}</span>`).join('')}</div>` : ''}
+      ${j.description ? `<div style="margin-top:14px;font-size:13.5px;color:var(--muted2);line-height:1.7">${j.description}</div>` : ''}
+      <div style="margin-top:16px">
+        <button onclick="_go('resume')" style="background:linear-gradient(135deg,var(--pulse),#009fc2);color:#06060f;border:none;border-radius:9px;padding:9px 20px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--ff)">Apply — Upload Resume →</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+</script>
+</body>
+</html>
+
+
+<!-- DELETE ACCOUNT MODAL -->
+<div id="deleteAccountModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);z-index:9999;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:1px solid rgba(239,68,68,.3);border-radius:16px;padding:32px;max-width:420px;width:90%;text-align:center">
+    <div style="font-size:48px;margin-bottom:12px">⚠️</div>
+    <h3 style="font-size:18px;font-weight:800;color:#f87171;margin-bottom:10px">Delete Account?</h3>
+    <p style="color:var(--muted2);font-size:14px;margin-bottom:8px">This will permanently delete:</p>
+    <ul style="color:var(--muted);font-size:13px;text-align:left;margin:0 auto 20px;max-width:260px;line-height:2">
+      <li>Your profile & personal data</li>
+      <li>Your resume & ATS scores</li>
+      <li>Your interview & assessment data</li>
+      <li>Your application history</li>
+    </ul>
+    <p style="color:#f87171;font-size:13px;font-weight:600;margin-bottom:20px">This action cannot be undone.</p>
+    <div style="display:flex;gap:10px">
+      <button onclick="cancelDeleteAccount()" style="flex:1;padding:11px;background:var(--card);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--ff)">Cancel</button>
+      <button id="deleteConfirmBtn" onclick="doDeleteAccount()" style="flex:1;padding:11px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.4);border-radius:10px;color:#f87171;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--ff)">🗑️ Yes, Delete</button>
+    </div>
+  </div>
+</div>
+<script src="chatbot.js">
+</script>
+</body>
+</html>

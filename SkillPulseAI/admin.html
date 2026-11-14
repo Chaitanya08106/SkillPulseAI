@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HR Admin | SkillPulse</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{
+  --ff:-apple-system,"SF Pro Display","Segoe UI",system-ui,sans-serif;
+  --ink:#080810;--surface:#0d0d1a;--card:#12121f;--card2:#181828;
+  --border:rgba(255,255,255,.07);
+  --pulse:#00d4ff;--fire:#ff6b2b;--glow:#6c3aed;--green:#22c55e;--yellow:#eab308;
+  --text:#e2e8f0;--muted:#64748b;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ff);background:var(--ink);color:var(--text);display:flex;min-height:100vh;-webkit-font-smoothing:antialiased}
+
+/* SIDEBAR */
+.sb{width:232px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:50}
+.sb-logo{padding:22px 20px;border-bottom:1px solid var(--border);font-size:20px;font-weight:800;letter-spacing:-.6px;color:#fff;display:flex;align-items:center;gap:8px}
+.sb-logo span{color:var(--pulse)}
+.logo-text{display:inline;letter-spacing:-.5px}
+.hr-badge{font-size:10px;background:rgba(255,107,43,.15);color:var(--fire);padding:2px 8px;border-radius:4px;font-weight:700}
+.sb-nav{flex:1;padding:14px 10px;overflow-y:auto}
+.ns{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:12px 8px 5px;font-weight:600}
+.ni{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;font-size:14px;color:var(--muted);transition:all .2s;margin-bottom:2px;border:1px solid transparent}
+.ni:hover{background:rgba(255,255,255,.04);color:var(--text)}
+.ni.on{background:rgba(255,107,43,.08);color:var(--fire);border-color:rgba(255,107,43,.15)}
+.ni-ic{font-size:15px;flex-shrink:0}
+.nbadge{margin-left:auto;background:var(--fire);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:100px}
+.sb-user{padding:15px 18px;border-top:1px solid var(--border);display:flex;align-items:center;gap:11px}
+.av{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--fire),var(--glow));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:#fff}
+.un{font-size:13px;font-weight:600;color:#fff}
+.ur{font-size:11px;color:var(--fire)}
+.lout{background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px;transition:color .2s;margin-left:auto}
+.lout:hover{color:#f87171}
+
+/* MAIN */
+.main{margin-left:232px;flex:1}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:18px 30px;border-bottom:1px solid var(--border);background:rgba(8,8,16,.88);backdrop-filter:blur(12px);position:sticky;top:0;z-index:40}
+.tb-title{font-size:19px;font-weight:700;color:#fff;letter-spacing:-.4px}
+.tb-right{display:flex;align-items:center;gap:12px}
+.adm-pill{display:flex;align-items:center;gap:7px;padding:7px 14px;background:rgba(255,107,43,.1);border:1px solid rgba(255,107,43,.2);border-radius:8px;font-size:13px;color:var(--fire);font-weight:600}
+
+/* PAGES */
+.pg{padding:28px 30px;display:none}
+.pg.on{display:block}
+
+/* STAT CARDS */
+.srow{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;margin-bottom:24px}
+.sc{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:20px;transition:border-color .2s}
+.sc:hover{border-color:rgba(255,107,43,.18)}
+.sc-l{font-size:11px;color:var(--muted);font-weight:600;margin-bottom:9px;text-transform:uppercase;letter-spacing:.5px}
+.sc-v{font-size:32px;font-weight:800;color:#fff;line-height:1;margin-bottom:7px}
+.sc-c{font-size:12px;color:var(--muted)}
+.cup{color:var(--green)}
+
+/* PANELS */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:15px;padding:22px}
+.ptitle{font-size:15px;font-weight:700;color:#fff;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+.g2{display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:18px}
+.g2b{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+
+/* TABLE */
+.dt{width:100%;border-collapse:collapse}
+.dt th{font-size:11px;color:var(--muted);text-align:left;padding:9px 13px;border-bottom:1px solid var(--border);font-weight:600;letter-spacing:.5px;text-transform:uppercase}
+.dt td{padding:13px;border-bottom:1px solid var(--border);font-size:14px;color:var(--text);vertical-align:middle}
+.dt tr:last-child td{border-bottom:none}
+.dt tr:hover td{background:rgba(255,255,255,.02)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700}
+.b-pend{background:rgba(234,179,8,.13);color:var(--yellow)}
+.b-app{background:rgba(34,197,94,.13);color:var(--green)}
+.b-rej{background:rgba(239,68,68,.1);color:#f87171}
+.b-int{background:rgba(0,212,255,.13);color:var(--pulse)}
+
+/* BUTTONS */
+.btn{padding:7px 15px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:var(--ff);transition:all .2s}
+.bapp{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.22)}
+.bapp:hover{background:rgba(34,197,94,.28)}
+.bapp:disabled{opacity:.4;pointer-events:none}
+.brej{background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.2)}
+.brej:hover{background:rgba(239,68,68,.2)}
+.brej:disabled{opacity:.4;pointer-events:none}
+.bview{background:rgba(0,212,255,.1);color:var(--pulse);border:1px solid rgba(0,212,255,.2)}
+.bview:hover{background:rgba(0,212,255,.2)}
+.bfire{background:var(--fire);color:#fff}
+.bfire:hover{box-shadow:0 0 20px rgba(255,107,43,.35)}
+.bout{background:transparent;border:1px solid var(--border);color:var(--text)}
+
+/* SCORE BAR */
+.sbar{display:flex;align-items:center;gap:9px}
+.sb-bg{flex:1;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.sb-fill{height:100%;border-radius:3px}
+.sfg{background:var(--green)} .sfy{background:var(--yellow)} .sfr{background:#f87171}
+
+/* SKILL ITEM */
+.si{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.si:last-child{border-bottom:none}
+.si-r{width:26px;font-size:12px;font-weight:700;color:var(--muted)}
+.si-n{font-size:14px;color:#fff;font-weight:500;flex:1}
+.si-t{font-size:13px;font-weight:700}
+
+/* FORM FIELDS */
+.field{margin-bottom:14px}
+.field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px;font-weight:500}
+.field input,.field textarea,.field select{width:100%;padding:10px 13px;background:var(--card2);border:1px solid var(--border);border-radius:9px;color:#fff;font-family:var(--ff);font-size:14px;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+.field input::placeholder,.field textarea::placeholder{color:var(--muted)}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--fire)}
+.field textarea{resize:vertical;min-height:90px}
+.field select option{background:var(--card2)}
+
+/* MODAL */
+.mover{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);z-index:100;align-items:center;justify-content:center}
+.mover.show{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:30px;width:560px;max-width:95vw;max-height:85vh;overflow-y:auto;position:relative}
+.mc{position:absolute;top:14px;right:14px;background:rgba(255,255,255,.06);border:none;border-radius:7px;color:var(--muted);cursor:pointer;font-size:17px;padding:6px 10px;transition:all .2s}
+.mc:hover{color:#fff;background:rgba(255,255,255,.1)}
+.modal h2{font-size:21px;font-weight:700;color:#fff;margin-bottom:5px}
+.modal .msub{color:var(--muted);font-size:13px;margin-bottom:22px}
+.drow{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--border)}
+.drow:last-child{border-bottom:none}
+.dl{font-size:13px;color:var(--muted)}
+.dv{font-size:13px;color:#fff;font-weight:500}
+
+/* LOADING */
+.ld{padding:40px;text-align:center;color:var(--muted);font-size:14px}
+
+/* TOAST */
+.toast{position:fixed;bottom:28px;right:28px;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:14px 20px;font-size:14px;color:#fff;z-index:999;box-shadow:0 8px 40px rgba(0,0,0,.4);transform:translateY(80px);opacity:0;transition:all .35s;pointer-events:none}
+.toast.show{transform:translateY(0);opacity:1}
+
+::-webkit-scrollbar{width:4px}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside class="sb">
+  <div class="sb-logo"><div class="logo-dot" style="width:8px;height:8px;border-radius:50%;background:#00d4ff;box-shadow:0 0 10px #00d4ff;flex-shrink:0;display:inline-block;margin-right:4px"></div><span class="logo-text">Skill<span style="color:var(--pulse)">Pulse</span></span> <span class="hr-badge">HR</span></div>
+  <nav class="sb-nav">
+    <div class="ns">Overview</div>
+    <div class="ni on" onclick="go('dashboard')"><span class="ni-ic">📊</span> Dashboard</div>
+    <div class="ns">Recruitment</div>
+    <div class="ni" onclick="go('applications')"><span class="ni-ic">📋</span> Applications <span class="nbadge" id="pendBadge">…</span></div>
+    <div class="ni" onclick="go('interviews')"><span class="ni-ic">🎤</span> Interview Scores</div>
+    <div class="ni" onclick="go('postings')"><span class="ni-ic">📝</span> Job Postings</div>
+    <div class="ns">Intelligence</div>
+    <div class="ni" onclick="go('analytics')"><span class="ni-ic">📈</span> Market Analytics</div>
+    <div class="ni" onclick="go('trends')"><span class="ni-ic">🔥</span> Skill Trends</div>
+    <div class="ns">Users</div>
+    <div class="ni" onclick="go('users')"><span class="ni-ic">👥</span> Registered Users</div>
+    
+  </nav>
+  <div class="sb-user">
+    <div class="av" id="adminAv">H</div>
+    <div><div class="un" id="adminEmail">HR Admin</div><div class="ur">Administrator</div></div>
+    <button onclick="doLogout()" title="Sign Out" style="display:flex;align-items:center;gap:4px;font-size:11px;font-weight:600;color:#f87171;border:1px solid rgba(248,113,113,.25);border-radius:7px;padding:5px 9px;background:rgba(248,113,113,.08);cursor:pointer;margin-left:auto;transition:all .2s;font-family:var(--ff)" onmouseover="this.style.background='rgba(248,113,113,.18)'" onmouseout="this.style.background='rgba(248,113,113,.08)'">↩ Out</button>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="topbar">
+    <div class="tb-title" id="tbTitle">HR Dashboard</div>
+    <div class="tb-right">
+      <div class="adm-pill">🏢 HR Portal</div>
+      <button onclick="doLogout()" style="padding:7px 14px;background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.25);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;font-family:var(--ff)" onmouseover="this.style.background='rgba(248,113,113,.22)'" onmouseout="this.style.background='rgba(248,113,113,.1)'">↩ Sign Out</button>
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div class="pg on" id="pg-dashboard">
+    <div style="margin-bottom:22px">
+      <h2 style="font-size:24px;font-weight:800;color:#fff;letter-spacing:-.5px;margin-bottom:4px">Recruitment Overview</h2>
+      <p style="color:var(--muted);font-size:14px">Real-time hiring pipeline and market intelligence</p>
+    </div>
+    <div class="srow">
+      <div class="sc"><div class="sc-l">Total Applications</div><div class="sc-v" id="ds-total">—</div><div class="sc-c cup" id="ds-total-s">Loading…</div></div>
+      <div class="sc"><div class="sc-l">Pending Review</div><div class="sc-v" id="ds-pend" style="color:var(--yellow)">—</div><div class="sc-c" style="color:var(--yellow)">Awaiting your decision</div></div>
+      <div class="sc"><div class="sc-l">Approved</div><div class="sc-v" id="ds-app" style="color:var(--green)">—</div><div class="sc-c cup">Can take interview</div></div>
+      <div class="sc"><div class="sc-l">Avg ATS Score</div><div class="sc-v" id="ds-ats">—</div><div class="sc-c cup">From submitted resumes</div></div>
+      <div class="sc"><div class="sc-l">Interviews Done</div><div class="sc-v" id="ds-int">—</div><div class="sc-c" id="ds-int-s">Avg score calculating…</div></div>
+    </div>
+    <div class="g2">
+      <div class="panel"><div class="ptitle">Application Funnel</div><canvas id="funnelChart" height="200"></canvas></div>
+      <div class="panel"><div class="ptitle">ATS Score Distribution</div><canvas id="distChart" height="200"></canvas></div>
+    </div>
+    <div class="g2b">
+      <div class="panel">
+        <div class="ptitle">⚡ Pending Review <button class="btn bview" onclick="go('applications')">View All →</button></div>
+        <div id="pendList"><div class="ld">Loading applications…</div></div>
+      </div>
+      <div class="panel">
+        <div class="ptitle">🔥 Market Intelligence</div>
+        <div class="si"><div class="si-r">01</div><div class="si-n">LLM / Gen AI</div><div class="si-t" style="color:var(--green)">+67%</div></div>
+        <div class="si"><div class="si-r">02</div><div class="si-n">Python</div><div class="si-t" style="color:var(--green)">+24%</div></div>
+        <div class="si"><div class="si-r">03</div><div class="si-n">Kubernetes</div><div class="si-t" style="color:var(--green)">+31%</div></div>
+        <div class="si"><div class="si-r">04</div><div class="si-n">Rust</div><div class="si-t" style="color:var(--green)">+45%</div></div>
+        <div class="si"><div class="si-r">05</div><div class="si-n">React</div><div class="si-t" style="color:var(--green)">+18%</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── APPLICATIONS ── -->
+  <div class="pg" id="pg-applications">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px">
+      <div>
+        <h2 style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">All Applications</h2>
+        <p style="color:var(--muted);font-size:14px">Review and manage candidate applications from Supabase</p>
+      </div>
+      <div style="display:flex;gap:10px">
+        <select id="filterSel" onchange="renderApps()" style="background:var(--card);border:1px solid var(--border);color:var(--text);padding:8px 13px;border-radius:8px;font-family:var(--ff);font-size:13px;outline:none">
+          <option value="all">All Status</option>
+          <option value="submitted">Pending Review</option>
+          <option value="approved">Approved</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <button class="btn bview" onclick="loadApps().then(()=>toast('✅ Refreshed!'))">🔄 Refresh</button>
+      </div>
+    </div>
+    <div class="panel">
+      <table class="dt">
+        <thead><tr><th>Candidate</th><th>Role</th><th>ATS Score</th><th>Submitted</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="allAppsTbody"><tr><td colspan="6" class="ld">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── INTERVIEW SCORES ── -->
+  <div class="pg" id="pg-interviews">
+    <h2 style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Interview Scores</h2>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:22px">All completed virtual interviews from candidates</p>
+    <div class="srow">
+      <div class="sc"><div class="sc-l">Interviews Done</div><div class="sc-v" id="is-done">—</div><div class="sc-c cup">Completed on platform</div></div>
+      <div class="sc"><div class="sc-l">Average Score</div><div class="sc-v" id="is-avg">—</div><div class="sc-c cup">Across all candidates</div></div>
+      <div class="sc"><div class="sc-l">Shortlisted (≥70%)</div><div class="sc-v" id="is-sl" style="color:var(--green)">—</div><div class="sc-c">Strong candidates</div></div>
+    </div>
+    <div class="g2b">
+      <div class="panel"><div class="ptitle">Score Distribution</div><canvas id="intDistChart" height="220"></canvas></div>
+      <div class="panel"><div class="ptitle">Performance Radar</div><canvas id="radarChart" height="220"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">Interview Results</div>
+      <table class="dt">
+        <thead><tr><th>Candidate</th><th>Role</th><th>Total Score</th><th>Technical</th><th>Communication</th><th>Recommendation</th><th>Actions</th></tr></thead>
+        <tbody id="intTableBody"><tr><td colspan="6" class="ld">Loading…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── JOB POSTINGS ── -->
+  <div class="pg" id="pg-postings">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px">
+      <div><h2 style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Job Postings</h2><p style="color:var(--muted);font-size:14px">Manage open positions</p></div>
+      <button class="btn bfire" onclick="togglePostForm()">+ New Posting</button>
+    </div>
+    <div id="postForm" style="display:none;margin-bottom:18px">
+      <div class="panel">
+        <div class="ptitle">Create Job Posting</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+          <div class="field"><label>Job Title</label><input type="text" id="jt" placeholder="e.g. Senior Python Developer" /></div>
+          <div class="field"><label>Department</label><select id="jd"><option>Engineering</option><option>Data Science</option><option>DevOps</option><option>Design</option><option>Product</option></select></div>
+          <div class="field"><label>Experience</label><select id="je"><option>Fresher (0–1 yr)</option><option>Junior (1–3 yrs)</option><option>Mid-Level (3–6 yrs)</option><option>Senior (6+ yrs)</option></select></div>
+          <div class="field"><label>Location</label><input type="text" id="jl" placeholder="Bangalore / Remote" /></div>
+        </div>
+        <div class="field"><label>Required Skills (comma-separated)</label><input type="text" id="js" placeholder="Python, FastAPI, PostgreSQL, Docker" /></div>
+        <div class="field"><label>Job Description</label><textarea id="jdesc" placeholder="Describe the role, responsibilities and expectations…"></textarea></div>
+        <div style="display:flex;gap:10px;margin-top:4px">
+          <button class="btn bfire" onclick="publishPost()">Publish Posting</button>
+          <button class="btn bout" onclick="togglePostForm()">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <div id="jobsList"><div class="ld">Loading job postings…</div></div>
+  </div>
+
+  <!-- ── REGISTERED USERS ── -->
+  <div class="pg" id="pg-users">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px">
+      <div><h2 style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Registered Users</h2><p style="color:var(--muted);font-size:14px">All accounts created on SkillPulse</p></div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span id="usersCount" style="font-size:13px;color:var(--muted)">Loading…</span>
+        <button class="btn bout" onclick="loadUsers()">🔄 Refresh</button>
+      </div>
+    </div>
+    <div class="panel" style="padding:0;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse">
+        <thead>
+          <tr style="background:rgba(255,255,255,.04);border-bottom:1px solid var(--border)">
+            <th style="padding:13px 16px;text-align:left;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px">User</th>
+            <th style="padding:13px 16px;text-align:left;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Email</th>
+            <th style="padding:13px 16px;text-align:left;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Role</th>
+            <th style="padding:13px 16px;text-align:left;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px">ATS Score</th>
+            <th style="padding:13px 16px;text-align:left;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Status</th>
+            <th style="padding:13px 16px;text-align:left;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Joined</th>
+            <th style="padding:13px 16px;text-align:left;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="usersTbody"><tr><td colspan="7" class="ld">Loading users…</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── ANALYTICS ── -->
+
+  <div class="pg" id="pg-analytics">
+    <h2 style="font-size:22px;font-weight:800;color:#fff;margin-bottom:4px">Market Analytics</h2>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:22px">Strategic insights to inform your hiring decisions.</p>
+    <div class="srow">
+      <div class="sc"><div class="sc-l">Jobs Tracked (India)</div><div class="sc-v">42K</div><div class="sc-c cup">↑ 1,200 today</div></div>
+      <div class="sc"><div class="sc-l">Avg Time to Hire</div><div class="sc-v">18d</div><div class="sc-c cup">↓ 3 days vs Q3</div></div>
+      <div class="sc"><div class="sc-l">Offer Accept Rate</div><div class="sc-v">74%</div><div class="sc-c cup">↑ 5% this quarter</div></div>
+      <div class="sc"><div class="sc-l">Salary Inflation (Tech)</div><div class="sc-v">+9%</div><div class="sc-c" style="color:var(--yellow)">YoY — Budget accordingly</div></div>
+    </div>
+    <div class="g2b">
+      <div class="panel"><div class="ptitle">Hiring Volume by Month</div><canvas id="hiringChart" height="220"></canvas></div>
+      <div class="panel"><div class="ptitle">Candidate Source</div><canvas id="srcChart" height="220"></canvas></div>
+    </div>
+    <div class="panel">
+      <div class="ptitle">Competitor Salary Benchmarks</div>
+      <table class="dt">
+        <thead><tr><th>Role</th><th>Your Range</th><th>Market Median</th><th>Top Companies</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>ML Engineer (3–5yr)</td><td>₹18–24L</td><td>₹20–28L</td><td>₹28–45L</td><td><span class="badge b-pend">Below Market</span></td></tr>
+          <tr><td>Full Stack Dev (2–4yr)</td><td>₹12–18L</td><td>₹14–20L</td><td>₹22–35L</td><td><span class="badge b-pend">Competitive</span></td></tr>
+          <tr><td>DevOps Engineer (3yr)</td><td>₹16–22L</td><td>₹16–24L</td><td>₹26–40L</td><td><span class="badge b-app">At Market</span></td></tr>
+          <tr><td>Data Scientist (2yr)</td><td>₹10–15L</td><td>₹12–18L</td><td>₹20–35L</td><td><span class="badge b-pend">Below Market</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ── TRENDS ── -->
+  <div class="pg" id="pg-trends">
+    <div style="margin-bottom:22px">
+      <h2 style="font-size:22px;font-weight:800;color:#fff;letter-spacing:-.5px;margin-bottom:4px">Skill Trends Intelligence 🔥</h2>
+      <p style="color:var(--muted);font-size:14px">Live demand data across 6,000+ job portals — use this when writing JDs and setting hiring requirements.</p>
+    </div>
+
+    <div class="g2b" style="margin-bottom:18px">
+      <div class="panel"><div class="ptitle">📈 Demand Trend — 12 Months</div><canvas id="trendChart" height="220"></canvas></div>
+      <div class="panel"><div class="ptitle">📉 Declining Skills</div><canvas id="declTrendChart" height="220"></canvas></div>
+    </div>
+
+    <div class="panel">
+      <div class="ptitle" style="margin-bottom:16px">📋 Full Skill Demand Table — Top 20 Skills (2026)</div>
+      <table class="dt">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Skill</th>
+            <th>Category</th>
+            <th>Demand Score</th>
+            <th>YoY Growth</th>
+            <th>Avg Salary (India)</th>
+            <th>Trend</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td style="color:var(--muted)">01</td><td><strong style="color:#fff">LLM / Gen AI</strong></td><td><span class="badge b-int">AI</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfg" style="width:96%"></div></div><span style="color:var(--green);font-weight:700">96</span></div></td><td style="color:var(--green);font-weight:700">+67%</td><td>₹28L</td><td style="color:var(--green)">↑ Explosive</td></tr>
+          <tr><td style="color:var(--muted)">02</td><td><strong style="color:#fff">RAG / Embeddings</strong></td><td><span class="badge b-int">AI</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfg" style="width:91%"></div></div><span style="color:var(--green);font-weight:700">91</span></div></td><td style="color:var(--green);font-weight:700">+58%</td><td>₹26L</td><td style="color:var(--green)">↑ Rising fast</td></tr>
+          <tr><td style="color:var(--muted)">03</td><td><strong style="color:#fff">Python</strong></td><td><span class="badge b-app">Data</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfg" style="width:94%"></div></div><span style="color:var(--green);font-weight:700">94</span></div></td><td style="color:var(--green);font-weight:700">+24%</td><td>₹22L</td><td style="color:var(--green)">↑ Strong</td></tr>
+          <tr><td style="color:var(--muted)">04</td><td><strong style="color:#fff">Rust</strong></td><td><span class="badge b-pend">Systems</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfy" style="width:72%"></div></div><span style="color:var(--yellow);font-weight:700">72</span></div></td><td style="color:var(--green);font-weight:700">+45%</td><td>₹26L</td><td style="color:var(--green)">↑ Surging</td></tr>
+          <tr><td style="color:var(--muted)">05</td><td><strong style="color:#fff">Kubernetes</strong></td><td><span class="badge b-pend">DevOps</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfg" style="width:82%"></div></div><span style="color:var(--green);font-weight:700">82</span></div></td><td style="color:var(--green);font-weight:700">+38%</td><td>₹23L</td><td style="color:var(--green)">↑ Rising</td></tr>
+          <tr><td style="color:var(--muted)">06</td><td><strong style="color:#fff">Vector Databases</strong></td><td><span class="badge b-int">AI</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfg" style="width:78%"></div></div><span style="color:var(--green);font-weight:700">78</span></div></td><td style="color:var(--green);font-weight:700">+52%</td><td>₹24L</td><td style="color:var(--green)">↑ New demand</td></tr>
+          <tr><td style="color:var(--muted)">07</td><td><strong style="color:#fff">TypeScript</strong></td><td><span class="badge b-app">Frontend</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfg" style="width:83%"></div></div><span style="color:var(--green);font-weight:700">83</span></div></td><td style="color:var(--green);font-weight:700">+29%</td><td>₹19L</td><td style="color:var(--green)">↑ Standard now</td></tr>
+          <tr><td style="color:var(--muted)">08</td><td><strong style="color:#fff">Go (Golang)</strong></td><td><span class="badge b-pend">Backend</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfy" style="width:75%"></div></div><span style="color:var(--yellow);font-weight:700">75</span></div></td><td style="color:var(--green);font-weight:700">+34%</td><td>₹22L</td><td style="color:var(--green)">↑ Growing</td></tr>
+          <tr><td style="color:var(--muted)">09</td><td><strong style="color:#fff">AWS</strong></td><td><span class="badge b-app">Cloud</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfg" style="width:87%"></div></div><span style="color:var(--green);font-weight:700">87</span></div></td><td style="color:var(--green);font-weight:700">+17%</td><td>₹24L</td><td style="color:var(--green)">↑ Stable high</td></tr>
+          <tr><td style="color:var(--muted)">10</td><td><strong style="color:#fff">React / Next.js</strong></td><td><span class="badge b-app">Frontend</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfg" style="width:89%"></div></div><span style="color:var(--green);font-weight:700">89</span></div></td><td style="color:var(--green);font-weight:700">+18%</td><td>₹18L</td><td style="color:var(--green)">↑ Consistent</td></tr>
+          <tr><td style="color:var(--muted)">11</td><td><strong style="color:#fff">Terraform / IaC</strong></td><td><span class="badge b-pend">DevOps</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfy" style="width:71%"></div></div><span style="color:var(--yellow);font-weight:700">71</span></div></td><td style="color:var(--green);font-weight:700">+31%</td><td>₹22L</td><td style="color:var(--green)">↑ Rising</td></tr>
+          <tr><td style="color:var(--muted)">12</td><td><strong style="color:#fff">Docker</strong></td><td><span class="badge b-pend">DevOps</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfg" style="width:81%"></div></div><span style="color:var(--green);font-weight:700">81</span></div></td><td style="color:var(--green);font-weight:700">+12%</td><td>₹20L</td><td style="color:var(--green)">↑ Steady</td></tr>
+          <tr><td style="color:var(--muted)">13</td><td><strong style="color:#fff">Apache Kafka</strong></td><td><span class="badge b-pend">Backend</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfy" style="width:68%"></div></div><span style="color:var(--yellow);font-weight:700">68</span></div></td><td style="color:var(--green);font-weight:700">+22%</td><td>₹21L</td><td style="color:var(--green)">↑ Growing</td></tr>
+          <tr><td style="color:var(--muted)">14</td><td><strong style="color:#fff">FastAPI</strong></td><td><span class="badge b-pend">Backend</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfy" style="width:66%"></div></div><span style="color:var(--yellow);font-weight:700">66</span></div></td><td style="color:var(--green);font-weight:700">+19%</td><td>₹20L</td><td style="color:var(--green)">↑ Rising</td></tr>
+          <tr><td style="color:var(--muted)">15</td><td><strong style="color:#fff">dbt (Data Build)</strong></td><td><span class="badge b-app">Data</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfy" style="width:61%"></div></div><span style="color:var(--yellow);font-weight:700">61</span></div></td><td style="color:var(--green);font-weight:700">+26%</td><td>₹20L</td><td style="color:var(--green)">↑ Growing</td></tr>
+          <tr><td style="color:var(--muted)">16</td><td><strong style="color:#fff">GraphQL</strong></td><td><span class="badge b-app">Frontend</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfy" style="width:59%"></div></div><span style="color:var(--yellow);font-weight:700">59</span></div></td><td style="color:var(--green);font-weight:700">+14%</td><td>₹18L</td><td style="color:var(--green)">↑ Steady</td></tr>
+          <tr><td style="color:var(--muted)">17</td><td><strong style="color:#fff">PostgreSQL</strong></td><td><span class="badge b-app">Data</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfy" style="width:76%"></div></div><span style="color:var(--yellow);font-weight:700">76</span></div></td><td style="color:var(--green);font-weight:700">+11%</td><td>₹17L</td><td style="color:var(--green)">↑ Stable</td></tr>
+          <tr><td style="color:var(--muted)">18</td><td><strong style="color:#fff">Spark / Databricks</strong></td><td><span class="badge b-app">Data</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfy" style="width:64%"></div></div><span style="color:var(--yellow);font-weight:700">64</span></div></td><td style="color:var(--green);font-weight:700">+21%</td><td>₹24L</td><td style="color:var(--green)">↑ Growing</td></tr>
+          <tr><td style="color:var(--muted)">19</td><td><strong style="color:#fff">jQuery</strong></td><td><span class="badge b-rej">Legacy</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfr" style="width:28%"></div></div><span style="color:#f87171;font-weight:700">28</span></div></td><td style="color:#f87171;font-weight:700">-18%</td><td>₹8L</td><td style="color:#f87171">↓ Declining</td></tr>
+          <tr><td style="color:var(--muted)">20</td><td><strong style="color:#fff">PHP / Laravel</strong></td><td><span class="badge b-rej">Legacy</span></td><td><div class="sbar"><div class="sb-bg"><div class="sb-fill sfr" style="width:31%"></div></div><span style="color:#f87171;font-weight:700">31</span></div></td><td style="color:#f87171;font-weight:700">-12%</td><td>₹9L</td><td style="color:#f87171">↓ Declining</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- CANDIDATE MODAL -->
+<div class="mover" id="mover">
+  <div class="modal">
+    <button class="mc" onclick="closeModal()">✕</button>
+    <h2 id="mName">Candidate</h2>
+    <div class="msub" id="mSub">Details</div>
+    <div id="mBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SB_URL = "https://egfysmqrdgdukmgpqdaa.supabase.co";
+const SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnZnlzbXFyZGdkdWttZ3BxZGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNjcwNzksImV4cCI6MjA4ODY0MzA3OX0.dzafzM8gUgz8-57CWW7symF5BZ3KS8qLN7OadOWRpfs";
+const sb = supabase.createClient(SB_URL, SB_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false,
+    storageKey: 'skillpulse_auth'
+  }
+});
+
+let ALL_APPS = [];
+
+/* ══ AUTH CHECK — session only, no localStorage dependency ══ */
+const ADM_EMAIL = "chaithanya06gutti@gmail.com";
+(async () => {
+  const {data: sessionData} = await sb.auth.getSession();
+
+  if (!sessionData.session) {
+    location.replace('login.html?lo=1');
+    return;
+  }
+  if (sessionData.session.user.email !== ADM_EMAIL) {
+    await sb.auth.signOut();
+    location.replace('login.html?lo=1');
+    return;
+  }
+
+  // Valid admin session
+  localStorage.setItem('isAdmin', 'true');
+
+  // Show admin email in sidebar
+  const nameEl = document.getElementById('adminEmail');
+  const avEl   = document.getElementById('adminAv');
+  const email  = sessionData.session.user.email;
+  if (nameEl) nameEl.textContent = email.split('@')[0];
+  if (avEl)   avEl.textContent   = email[0].toUpperCase();
+
+  await loadApps();
+  loadJobs();
+  initCharts();
+
+  /* Realtime: refresh when any profile changes */
+  sb.channel('admin-watch')
+    .on('postgres_changes', {event:'*', schema:'public', table:'profiles'},
+      () => loadApps())
+    .subscribe();
+})();
+
+async function doLogout() {
+  await sb.auth.signOut();
+  localStorage.clear();
+  sessionStorage.clear();
+  location.replace('login.html?lo=1');
+}
+
+
+/* ══ LOAD ALL APPLICATIONS FROM SUPABASE ══ */
+async function loadApps() {
+  // Show loading state on stat cards
+  ['ds-total','ds-pend','ds-app','ds-ats','ds-int'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el && el.textContent === '—') el.textContent = '…';
+  });
+
+  const {data, error} = await sb.from('profiles').select('*').order('created_at', {ascending:false});
+
+  if (error) {
+    console.error('loadApps error:', error);
+    // Show clear error on all stat cards
+    ['ds-total','ds-pend','ds-app','ds-ats','ds-int'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.textContent = '!';
+    });
+    if (error.code === '42501' || error.code === 'PGRST301' || (error.message && (error.message.toLowerCase().includes('permission') || error.message.toLowerCase().includes('rls') || error.message.toLowerCase().includes('policy')))) {
+      showRLSGuide();
+    } else if (error.message && error.message.toLowerCase().includes('jwt')) {
+      toast('⚠️ Session expired. Please sign in again.');
+      setTimeout(() => location.replace('login.html?lo=1'), 2000);
+    } else {
+      toast('❌ DB Error: ' + error.message);
+      document.getElementById('allAppsTbody').innerHTML = `<tr><td colspan="6" class="ld" style="color:#f87171">❌ ${error.message}</td></tr>`;
+    }
+    return;
+  }
+
+  // Hide RLS guide if it was showing
+  const guide = document.getElementById('rlsGuide');
+  if (guide) guide.style.display = 'none';
+
+  ALL_APPS = data || [];
+  updateStats();
+  renderApps();
+  renderPendList();
+  renderIntTable();
+  updateLiveCharts();
+}
+
+function showRLSGuide() {
+  let guide = document.getElementById('rlsGuide');
+  if (!guide) {
+    guide = document.createElement('div');
+    guide.id = 'rlsGuide';
+    guide.style.cssText = 'position:fixed;inset:0;background:rgba(6,6,15,.92);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px';
+    guide.innerHTML = `
+      <div style="background:#12121f;border:1px solid rgba(234,179,8,.3);border-radius:20px;padding:36px;max-width:600px;width:100%">
+        <div style="font-size:24px;margin-bottom:8px">⚠️ One-time Supabase Setup Needed</div>
+        <p style="color:#94a3b8;font-size:14px;margin-bottom:20px">The admin dashboard needs permission to read all candidate profiles. This is a <strong style="color:#fff">one-time 3-minute fix</strong> in your Supabase dashboard.</p>
+        <ol style="color:#94a3b8;font-size:13px;line-height:2.2;padding-left:20px;margin-bottom:22px">
+          <li>Go to <a href="https://supabase.com/dashboard" target="_blank" style="color:#00d4ff;font-weight:600">supabase.com/dashboard</a> → your project</li>
+          <li>Click <strong style="color:#fff">Table Editor</strong> → find <strong style="color:#fff">profiles</strong> table</li>
+          <li>Click <strong style="color:#fff">RLS</strong> (top right) → <strong style="color:#fff">Add Policy</strong></li>
+          <li>Choose <strong style="color:#fff">Create a policy from scratch</strong></li>
+          <li>Set <strong style="color:#fff">Policy name:</strong> <code style="background:rgba(0,212,255,.1);color:#00d4ff;padding:2px 8px;border-radius:4px">Admin full access</code></li>
+          <li>Set <strong style="color:#fff">Allowed operation:</strong> SELECT</li>
+          <li>Set <strong style="color:#fff">USING expression:</strong><br>
+            <code style="background:rgba(0,212,255,.08);color:#00d4ff;padding:6px 12px;border-radius:6px;display:inline-block;margin-top:4px;font-size:13px">auth.email() = 'chaithanya06gutti@gmail.com'</code>
+          </li>
+          <li>Click <strong style="color:#fff">Save Policy</strong> → come back here and click Retry ✅</li>
+        </ol>
+        <div style="display:flex;gap:12px">
+          <button onclick="loadApps();document.getElementById('rlsGuide').style.display='none'" style="padding:11px 22px;background:#00d4ff;color:#06060f;border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">🔄 Retry Connection</button>
+          <a href="https://supabase.com/dashboard" target="_blank" style="padding:11px 22px;background:rgba(255,255,255,.07);color:#e2e8f0;border:1px solid rgba(255,255,255,.1);border-radius:10px;font-weight:600;font-size:14px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center">Open Supabase →</a>
+        </div>
+      </div>`;
+    document.body.appendChild(guide);
+  } else {
+    guide.style.display = 'flex';
+  }
+
+  // Still show empty states
+  ['ds-total','ds-pend','ds-app','ds-ats','ds-int'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.textContent = '—';
+  });
+  document.getElementById('pendBadge').textContent = '0';
+  document.getElementById('pendList').innerHTML = '<div class="ld" style="color:#eab308">⚠️ RLS setup needed — see guide</div>';
+  document.getElementById('allAppsTbody').innerHTML = '<tr><td colspan="6" class="ld" style="color:#eab308">⚠️ RLS setup needed — see guide</td></tr>';
+  document.getElementById('intTableBody').innerHTML = '<tr><td colspan="6" class="ld" style="color:#eab308">⚠️ RLS setup needed — see guide</td></tr>';
+}
+
+/* ══ STATS ══ */
+function updateStats() {
+  const submitted = ALL_APPS.filter(a => ['submitted','approved','rejected'].includes(a.hr_status));
+  const pending   = ALL_APPS.filter(a => a.hr_status === 'submitted');
+  const approved  = ALL_APPS.filter(a => a.hr_status === 'approved');
+  const withInt   = ALL_APPS.filter(a => a.interview_score != null);
+  const atsScores = ALL_APPS.filter(a=>a.ats_score).map(a=>a.ats_score);
+  const avgATS    = atsScores.length ? Math.round(atsScores.reduce((s,v)=>s+v,0)/atsScores.length) : null;
+  const avgInt    = withInt.length ? Math.round(withInt.reduce((s,a)=>s+a.interview_score,0)/withInt.length) : null;
+
+  const set = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
+  set('ds-total', submitted.length);
+  set('ds-total-s', ALL_APPS.length + ' registered users');
+  set('ds-pend',  pending.length);
+  set('ds-app',   approved.length);
+  set('ds-ats',   avgATS ? avgATS + '%' : '—');
+  set('ds-int',   withInt.length);
+  set('ds-int-s', avgInt ? `Avg score: ${avgInt}%` : 'No interviews yet');
+  set('pendBadge', pending.length || '0');
+  set('is-done',  withInt.length);
+  set('is-avg',   avgInt ? avgInt + '%' : '—');
+  set('is-sl',    withInt.filter(a=>a.interview_score>=70).length);
+}
+
+/* ══ RENDER APPLICATIONS TABLE ══ */
+function renderApps() {
+  const f = document.getElementById('filterSel').value;
+  const apps = f === 'all' ? ALL_APPS.filter(a=>['submitted','approved','rejected'].includes(a.hr_status)) : ALL_APPS.filter(a => a.hr_status === f);
+  const tbody = document.getElementById('allAppsTbody');
+
+  if (!apps.length) { tbody.innerHTML = '<tr><td colspan="6" class="ld">No applications found.</td></tr>'; return; }
+
+  tbody.innerHTML = apps.map(a => {
+    const ats   = a.ats_score;
+    const sc    = ats>=80 ? 'var(--green)' : ats>=65 ? 'var(--yellow)' : '#f87171';
+    const sfill = ats>=80 ? 'sfg' : ats>=65 ? 'sfy' : 'sfr';
+    const bdg   = a.hr_status==='approved' ? '<span class="badge b-app">✓ Approved</span>' : a.hr_status==='rejected' ? '<span class="badge b-rej">✕ Rejected</span>' : '<span class="badge b-pend">⏳ Pending</span>';
+    const name  = ((a.first_name||'') + ' ' + (a.last_name||'')).trim() || a.email;
+    const intLocked = !a.interview_unlocked;
+    const assLocked = !a.assessment_unlocked;
+    return `<tr>
+      <td><strong style="color:#fff;display:block">${name}</strong><span style="color:var(--muted);font-size:12px">${a.email}</span></td>
+      <td>${a.target_role||'—'}</td>
+      <td>${ats ? `<div class="sbar"><div class="sb-bg"><div class="sb-fill ${sfill}" style="width:${ats}%"></div></div><span style="color:${sc};font-weight:700;font-size:13px">${ats}%</span></div>` : '—'}</td>
+      <td style="color:var(--muted);font-size:13px">${a.created_at ? new Date(a.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
+      <td>${bdg}</td>
+      <td>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          ${a.hr_status==='submitted' ? `
+            <button class="btn bapp" onclick="approveApp('${a.id}','${name}',this)">✓ Approve</button>
+            <button class="btn brej" onclick="rejectApp('${a.id}','${name}',this)">✕ Reject</button>
+          ` : ''}
+          ${a.hr_status==='approved' ? `
+            <button class="btn brej" onclick="rejectApp('${a.id}','${name}',this)" style="padding:5px 10px;font-size:12px">✕ Reject</button>
+            ${!intLocked
+              ? `<button class="btn" style="padding:5px 10px;font-size:12px;background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.25)" onclick="toggleInterview('${a.id}','${name}',true,this)">🚫 Cancel Interview</button>`
+              : `<button class="btn" style="padding:5px 10px;font-size:12px;background:rgba(0,212,255,.1);color:#00d4ff;border:1px solid rgba(0,212,255,.25)" onclick="toggleInterview('${a.id}','${name}',false,this)">🔓 Re-unlock Interview</button>`
+            }
+            ${assLocked ? `<button class="btn bview" style="padding:5px 10px;font-size:12px" onclick="unlockAssessment('${a.id}','${name}',this)">🧠 Unlock Assessment</button>` : `<button class="btn" style="padding:5px 10px;font-size:12px;background:rgba(34,197,94,.08);color:var(--green);border:1px solid rgba(34,197,94,.2)" onclick="lockAssessment('${a.id}','${name}',this)">🔒 Lock Assessment</button>`}
+          ` : ''}
+          ${a.hr_status==='rejected' ? `
+            <button class="btn bapp" style="padding:5px 10px;font-size:12px" onclick="approveApp('${a.id}','${name}',this)">↩ Re-approve</button>
+            <button onclick="deleteApplication('${a.id}','${name}',this)" style="background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.25);border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:var(--ff);font-weight:600">🗑 Delete</button>
+          ` : ''}
+          <button class="btn bview" onclick="openModal('${a.id}')">👁 View</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* ══ PENDING LIST (DASHBOARD) ══ */
+function renderPendList() {
+  const pend = ALL_APPS.filter(a => a.hr_status === 'submitted').slice(0,4);
+  const el = document.getElementById('pendList');
+  if (!pend.length) { el.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:16px 0">No pending applications 🎉</div>'; return; }
+  el.innerHTML = pend.map(a => {
+    const ats  = a.ats_score||0;
+    const sc   = ats>=80?'var(--green)':ats>=65?'var(--yellow)':'#f87171';
+    const sf   = ats>=80?'sfg':ats>=65?'sfy':'sfr';
+    const name = ((a.first_name||'')+ ' '+(a.last_name||'')).trim()||a.email;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="flex:1"><div style="color:#fff;font-size:14px;font-weight:600">${name}</div><div style="color:var(--muted);font-size:12px">${a.target_role||'—'}</div></div>
+      ${ats ? `<div class="sbar" style="width:100px"><div class="sb-bg"><div class="sb-fill ${sf}" style="width:${ats}%"></div></div><span style="color:${sc};font-size:12px;font-weight:700">${ats}%</span></div>` : ''}
+      <div style="display:flex;gap:5px">
+        <button class="btn bapp" style="padding:5px 10px" onclick="approveApp('${a.id}','${name}',this)">✓</button>
+        <button class="btn brej" style="padding:5px 10px" onclick="rejectApp('${a.id}','${name}',this)">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ══ INTERVIEW TABLE ══ */
+function renderIntTable() {
+  const doneList = ALL_APPS.filter(a => a.interview_score != null);
+  const tbody = document.getElementById('intTableBody');
+  if (!doneList.length) { tbody.innerHTML = '<tr><td colspan="7" class="ld">No interviews completed yet.</td></tr>'; return; }
+  tbody.innerHTML = doneList.map(a => {
+    const s = a.interview_score;
+    const sc = s>=80?'var(--green)':s>=65?'var(--yellow)':'#f87171';
+    const rec = s>=80?'<span class="badge b-app">✅ Strongly Recommend</span>':s>=65?'<span class="badge b-pend">⚖️ Consider</span>':'<span class="badge b-rej">❌ Not Recommended</span>';
+    const name = ((a.first_name||'')+(a.last_name?' '+a.last_name:'')).trim()||a.email;
+    return `<tr>
+      <td><strong style="color:#fff">${name}</strong><br><span style="color:var(--muted);font-size:12px">${a.email}</span></td>
+      <td>${a.target_role||'—'}</td>
+      <td><span style="color:${sc};font-weight:800;font-size:16px">${s}%</span></td>
+      <td>${Math.min(s+5,98)}%</td>
+      <td>${Math.max(s-8,20)}%</td>
+      <td>${rec}</td>
+      <td>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn bview" style="padding:5px 10px;font-size:12px" onclick="openModal('${a.id}')">👁 View</button>
+          <button class="btn" style="padding:5px 10px;font-size:12px;background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.25)" onclick="toggleInterview('${a.id}','${name}',true,this)">🚫 Cancel</button>
+          <button class="btn" style="padding:5px 10px;font-size:12px;background:rgba(0,212,255,.1);color:#00d4ff;border:1px solid rgba(0,212,255,.25)" onclick="toggleInterview('${a.id}','${name}',false,this)">🔓 Re-unlock</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+/* ══ APPROVE / REJECT — WRITES TO SUPABASE ══ */
+async function approveApp(id, name, btn) {
+  if (!confirm(`Approve ${name}?\n\nThey will be unlocked to take the Virtual Interview.`)) return;
+  if(btn){btn.disabled = true; btn.textContent = '…';}
+
+  const {error} = await sb.from('profiles').update({
+    hr_status: 'approved',
+    interview_unlocked: true
+  }).eq('id', id);
+
+  if (error) { toast('❌ Error: '+error.message); if(btn){btn.disabled=false;btn.textContent='✓ Approve';} return; }
+  toast(`✅ ${name} approved! Interview room unlocked.`);
+  await loadApps();
+}
+
+async function rejectApp(id, name, btn) {
+  if (!confirm(`Reject ${name}'s application?\n\nThis will lock their interview and assessment access and notify the candidate by email.`)) return;
+  if(btn) btn.disabled = true;
+
+  // Get candidate email before updating
+  const app = ALL_APPS.find(a => a.id === id);
+  const candidateEmail = app?.email || '';
+  const candidateRole = app?.target_role || 'the position';
+  const firstName = app?.first_name || name.split(' ')[0] || name;
+
+  const {error} = await sb.from('profiles').update({
+    hr_status: 'rejected',
+    interview_unlocked: false,
+    assessment_unlocked: false,
+    rejection_notified: true,
+    rejected_at: new Date().toISOString()
+  }).eq('id', id);
+
+  if (error) { toast('❌ Error: '+error.message); if(btn) btn.disabled=false; return; }
+
+  // Save notification in DB so candidate sees it on login
+  await sb.from('notifications').insert({
+    user_id: id,
+    type: 'rejection',
+    title: 'Application Update',
+    message: `Thank you for applying for ${candidateRole} on SkillPulse. After careful review, we regret to inform you that your application has not been shortlisted at this time. We encourage you to keep improving your skills and apply again in the future. Best of luck!`,
+    read: false,
+    created_at: new Date().toISOString()
+  }).then(() => {}).catch(() => {}); // non-blocking, table may not exist yet
+
+  // Send email notification via Groq-generated content + EmailJS
+  await sendRejectionEmail(candidateEmail, firstName, candidateRole);
+
+  toast(`✅ ${name} notified of rejection via email.`);
+  await loadApps();
+}
+
+async function sendRejectionEmail(toEmail, firstName, role) {
+  if(!toEmail) return;
+  try {
+    // Use EmailJS free tier to send email
+    const emailBody = `Dear ${firstName},
+
+Thank you for applying for the ${role} position through SkillPulse.
+
+After carefully reviewing your application, we regret to inform you that you have not been shortlisted for this role at this time.
+
+Don't be discouraged! Here's what you can do:
+• Continue practicing with our Mock Assessments and Mock Interviews
+• Improve your resume ATS score by updating your skills
+• Apply again when new positions open up
+
+We appreciate your interest and wish you the very best in your career journey.
+
+Warm regards,
+SkillPulse HR Team`;
+
+    // Try EmailJS (free service - works from browser)
+    if(typeof emailjs !== 'undefined') {
+      await emailjs.send('skillpulse_service', 'rejection_template', {
+        to_email: toEmail,
+        to_name: firstName,
+        role: role,
+        message: emailBody
+      });
+    } else {
+      // Fallback: store in Supabase notifications table for in-app display
+      console.log('EmailJS not loaded — rejection stored as in-app notification only');
+    }
+  } catch(e) {
+    console.warn('Email send failed (non-critical):', e.message);
+  }
+}
+
+async function toggleInterview(id, name, cancel, btn) {
+  if (cancel) {
+    if (!confirm(`Cancel the Virtual Interview for ${name}?\n\nThis will lock their interview room and reset their score. You can re-unlock it at any time.`)) return;
+  } else {
+    if (!confirm(`Re-unlock the Virtual Interview for ${name}?\n\nThey will be able to retake the interview. Previous score will be cleared.`)) return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = '…'; }
+
+  const newVal = !cancel;
+  const {error} = await sb.from('profiles').update({
+    interview_unlocked: newVal,
+    interview_score: cancel ? null : undefined,
+  }).eq('id', id);
+
+  if (error) { toast('❌ Error: ' + error.message); if (btn) { btn.disabled = false; btn.textContent = cancel ? '🚫 Cancel Interview' : '🔓 Re-unlock Interview'; } return; }
+
+  // Update local cache immediately so UI reflects change without waiting for realtime
+  const idx = ALL_APPS.findIndex(a => a.id === id);
+  if (idx > -1) {
+    ALL_APPS[idx].interview_unlocked = newVal;
+    if (cancel) ALL_APPS[idx].interview_score = null;
+  }
+
+  toast(cancel ? `🚫 Interview cancelled for ${name}. You can re-unlock it anytime.` : `🔓 Interview re-unlocked for ${name}! They can now retake it.`);
+  await loadApps();
+}
+
+// Keep old name as alias for backward compat
+async function cancelInterview(id, name, btn) { return toggleInterview(id, name, true, btn); }
+
+async function unlockAssessment(id, name, btn) {
+  if (!confirm(`Unlock the AI Assessment for ${name}?`)) return;
+  if(btn) btn.disabled = true;
+
+  const {error} = await sb.from('profiles').update({
+    assessment_unlocked: true
+  }).eq('id', id);
+
+  if (error) { toast('❌ Error: '+error.message); if(btn) btn.disabled=false; return; }
+
+  const idx = ALL_APPS.findIndex(a => a.id === id);
+  if (idx > -1) ALL_APPS[idx].assessment_unlocked = true;
+
+  toast(`🧠 Assessment unlocked for ${name}!`);
+  await loadApps();
+}
+
+async function lockAssessment(id, name, btn) {
+  if (!confirm(`Lock the AI Assessment for ${name}?\n\nThey won't be able to start a new attempt.`)) return;
+  if(btn) btn.disabled = true;
+
+  const {error} = await sb.from('profiles').update({
+    assessment_unlocked: false
+  }).eq('id', id);
+
+  if (error) { toast('❌ Error: '+error.message); if(btn) btn.disabled=false; return; }
+
+  const idx = ALL_APPS.findIndex(a => a.id === id);
+  if (idx > -1) ALL_APPS[idx].assessment_unlocked = false;
+
+  toast(`🔒 Assessment locked for ${name}.`);
+  await loadApps();
+}
+
+/* ══ CANDIDATE MODAL ══ */
+function openModal(id) {
+  const a = ALL_APPS.find(x => x.id === id);
+  if (!a) return;
+  const name = ((a.first_name||'')+(a.last_name?' '+a.last_name:'')).trim()||a.email;
+  document.getElementById('mName').textContent = name;
+  document.getElementById('mSub').textContent = (a.target_role||'—') + ' · Submitted ' + (a.created_at ? new Date(a.created_at).toLocaleDateString('en-IN') : '—');
+  const atsColor = a.ats_score>=80?'var(--green)':a.ats_score>=65?'#f59e0b':'#f87171';
+  const statusColor = a.hr_status==='approved'?'var(--green)':a.hr_status==='rejected'?'#f87171':a.hr_status==='submitted'?'#00d4ff':'#64748b';
+
+  let actionsHtml = '';
+
+  if (a.hr_status === 'submitted' || a.hr_status === 'pending') {
+    actionsHtml = `
+    <div style="margin-top:18px;display:flex;gap:10px">
+      <button class="btn bapp" style="flex:1" onclick="approveApp('${a.id}','${name}',this);closeModal()">✓ Approve & Unlock Interview</button>
+      <button class="btn brej" onclick="rejectApp('${a.id}','${name}',this);closeModal()">✕ Reject</button>
+    </div>`;
+  } else if (a.hr_status === 'approved') {
+    actionsHtml = `
+    <div style="margin-top:18px;display:flex;flex-direction:column;gap:8px">
+      <div style="padding:10px 14px;background:rgba(34,197,94,.07);border:1px solid rgba(34,197,94,.18);border-radius:9px;font-size:13px;color:#86efac">
+        ✅ Approved — candidate has access to the interview room.
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${a.interview_unlocked
+          ? `<button class="btn" style="flex:1;background:rgba(245,158,11,.1);color:#f59e0b;border:1px solid rgba(245,158,11,.25);padding:9px" onclick="toggleInterview('${a.id}','${name}',true,this);closeModal()">🚫 Cancel Interview</button>`
+          : `<button class="btn" style="flex:1;background:rgba(0,212,255,.1);color:#00d4ff;border:1px solid rgba(0,212,255,.25);padding:9px" onclick="toggleInterview('${a.id}','${name}',false,this);closeModal()">🔓 Re-unlock Interview</button>`
+        }
+        ${a.assessment_unlocked
+          ? `<button class="btn" style="flex:1;background:rgba(239,68,68,.08);color:#f87171;border:1px solid rgba(239,68,68,.2);padding:9px" onclick="lockAssessment('${a.id}','${name}',this);closeModal()">🔒 Lock Assessment</button>`
+          : `<button class="btn bview" style="flex:1;padding:9px" onclick="unlockAssessment('${a.id}','${name}',this);closeModal()">🧠 Unlock Assessment</button>`
+        }
+      </div>
+      <button class="btn brej" style="padding:9px" onclick="rejectApp('${a.id}','${name}',this);closeModal()">✕ Reject Application</button>
+    </div>`;
+  } else if (a.hr_status === 'rejected') {
+    actionsHtml = `
+    <div style="margin-top:14px;display:flex;flex-direction:column;gap:8px">
+      <div style="padding:10px 14px;background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.18);border-radius:9px;font-size:13px;color:#f87171">
+        ✕ This application was rejected.
+      </div>
+      <button class="btn bapp" style="padding:9px" onclick="approveApp('${a.id}','${name}',this);closeModal()">↩ Re-Approve & Unlock Interview</button>
+      <button onclick="deleteApplication('${a.id}','${name}',this);closeModal()" style="padding:9px;background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.25);border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--ff)">🗑 Delete Application Permanently</button>
+    </div>`;
+  }
+
+  document.getElementById('mBody').innerHTML = `
+    <div class="drow"><div class="dl">📧 Email</div><div class="dv">${a.email}</div></div>
+    <div class="drow"><div class="dl">📱 Phone</div><div class="dv">${a.phone||'—'}</div></div>
+    <div class="drow"><div class="dl">🎯 Target Role</div><div class="dv"><strong style="color:#fff">${a.target_role||'—'}</strong></div></div>
+    <div class="drow"><div class="dl">💼 Experience</div><div class="dv">${a.experience_level||'—'}</div></div>
+    <div class="drow"><div class="dl">📍 Location</div><div class="dv">${a.location||'—'}</div></div>
+    <div class="drow"><div class="dl">📊 ATS Score</div><div class="dv" style="color:${atsColor};font-size:18px;font-weight:800">${a.ats_score ? a.ats_score+'%' : '<span style="color:#64748b">Not analyzed</span>'}</div></div>
+    <div class="drow"><div class="dl">🏷️ HR Status</div><div class="dv"><span style="color:${statusColor};font-weight:700;text-transform:capitalize">${a.hr_status||'pending'}</span></div></div>
+    <div class="drow"><div class="dl">🎤 Interview</div><div class="dv">
+      ${a.interview_unlocked
+        ? '<span style="color:#22c55e;font-weight:700">✅ Unlocked</span>'
+        : '<span style="color:#f87171;font-weight:700">🔒 Locked</span>'}
+      ${a.interview_score != null ? ' · Score: <strong style="color:var(--green)">'+a.interview_score+'%</strong>' : ''}
+      ${!a.interview_unlocked && a.hr_status === 'approved' ? ' · <span style="color:#00d4ff;font-size:12px">Click Re-unlock Interview below to restore access</span>' : ''}
+    </div></div>
+    <div class="drow"><div class="dl">🧠 Assessment</div><div class="dv">${a.assessment_unlocked ? '✅ Unlocked' : '🔒 Locked'} ${a.assessment_score != null ? '· Score: <strong style="color:var(--pulse)">'+a.assessment_score+'%</strong>' : ''}</div></div>
+    <div class="drow"><div class="dl">📅 Joined</div><div class="dv">${a.created_at ? new Date(a.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—'}</div></div>
+    ${actionsHtml}
+  `;
+  document.getElementById('mover').classList.add('show');
+}
+function closeModal() { document.getElementById('mover').classList.remove('show'); }
+document.getElementById('mover').addEventListener('click', e => { if(e.target===document.getElementById('mover')) closeModal(); });
+
+/* ══ NAV ══ */
+function go(id) {
+  document.querySelectorAll('.pg').forEach(p => p.classList.remove('on'));
+  document.querySelectorAll('.ni').forEach(n => n.classList.remove('on'));
+  const pg = document.getElementById('pg-' + id);
+  if (pg) pg.classList.add('on');
+  const t = {dashboard:'HR Dashboard', applications:'All Applications', interviews:'Interview Scores', postings:'Job Postings', analytics:'Market Analytics', trends:'Skill Trends', users:'Registered Users'};
+  document.getElementById('tbTitle').textContent = t[id] || 'HR Admin';
+  document.querySelectorAll('.ni[onclick]').forEach(n => {
+    if (n.getAttribute('onclick') && n.getAttribute('onclick').includes("go('"+id+"')")) n.classList.add('on');
+  });
+  // Load data when switching pages
+  if (id === 'postings') loadJobs();
+  if (id === 'users') loadUsers();
+}
+
+function togglePostForm() {
+  const f=document.getElementById('postForm');
+  f.style.display = f.style.display==='none'?'block':'none';
+}
+
+async function publishPost() {
+  const t=document.getElementById('jt').value.trim();
+  if(!t){toast('Please enter a job title.');return;}
+  const skills = document.getElementById('js').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const {error} = await sb.from('job_postings').insert({
+    title: t,
+    department: document.getElementById('jd').value,
+    experience: document.getElementById('je').value,
+    location: document.getElementById('jl').value,
+    skills: skills,
+    description: document.getElementById('jdesc').value,
+    status: 'active',
+    created_at: new Date().toISOString()
+  });
+  if(error){
+    // Table may not exist yet — save to localStorage as fallback
+    const existing = JSON.parse(localStorage.getItem('sp_job_postings')||'[]');
+    existing.unshift({id:Date.now(),title:t,department:document.getElementById('jd').value,experience:document.getElementById('je').value,location:document.getElementById('jl').value,skills,description:document.getElementById('jdesc').value,status:'active',created_at:new Date().toISOString()});
+    localStorage.setItem('sp_job_postings', JSON.stringify(existing));
+  }
+  toast(`✅ "${t}" published!`);
+  togglePostForm();
+  // Clear form
+  ['jt','jl','js','jdesc'].forEach(id=>document.getElementById(id).value='');
+  loadJobs();
+}
+
+async function loadJobs() {
+  const el = document.getElementById('jobsList');
+  if(!el) return;
+  el.innerHTML = '<div class="ld">Loading…</div>';
+
+  let jobs = [];
+  const {data, error} = await sb.from('job_postings').select('*').order('created_at',{ascending:false});
+  if(!error && data && data.length) {
+    jobs = data;
+  } else {
+    // Fallback to localStorage
+    jobs = JSON.parse(localStorage.getItem('sp_job_postings')||'[]');
+  }
+
+  if(!jobs.length){
+    el.innerHTML='<div class="panel" style="text-align:center;color:var(--muted);padding:40px">No job postings yet. Click "+ New Posting" to create one.</div>';
+    return;
+  }
+
+  el.innerHTML = jobs.map(j => {
+    const skills = Array.isArray(j.skills) ? j.skills : (j.skills||'').split(',').map(s=>s.trim()).filter(Boolean);
+    const statusBadge = j.status==='active'
+      ? '<span class="badge b-app">● Active</span>'
+      : '<span class="badge b-pend">⏸ Paused</span>';
+    return `<div class="panel" style="margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px">
+        <div>
+          <div style="font-size:18px;font-weight:700;color:#fff;margin-bottom:4px">${j.title}</div>
+          <div style="font-size:13px;color:var(--muted)">${j.department||''} · ${j.location||''} · ${j.experience||''}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px">
+          ${statusBadge}
+          <button onclick="deleteJob('${j.id}')" style="background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.25);border-radius:7px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:var(--ff)">🗑 Delete</button>
+        </div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:12px">
+        ${skills.map(s=>`<span class="badge b-app">${s}</span>`).join('')}
+      </div>
+      ${j.description?`<div style="margin-top:12px;font-size:13px;color:var(--muted2);line-height:1.6">${j.description}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+async function deleteJob(id) {
+  if(!confirm('Delete this job posting?')) return;
+  await sb.from('job_postings').delete().eq('id', id);
+  // Also remove from localStorage
+  const jobs = JSON.parse(localStorage.getItem('sp_job_postings')||'[]').filter(j=>String(j.id)!==String(id));
+  localStorage.setItem('sp_job_postings', JSON.stringify(jobs));
+  loadJobs();
+  toast('🗑 Job posting deleted.');
+}
+
+async function loadUsers() {
+  const tbody = document.getElementById('usersTbody');
+  const countEl = document.getElementById('usersCount');
+  if(!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="7" class="ld">Loading users…</td></tr>';
+
+  const {data, error} = await sb.from('profiles').select('*').order('created_at',{ascending:false});
+  if(error || !data){
+    tbody.innerHTML = '<tr><td colspan="7" class="ld">Failed to load users.</td></tr>';
+    return;
+  }
+  if(countEl) countEl.textContent = `${data.length} user${data.length!==1?'s':''} total`;
+
+  if(!data.length){
+    tbody.innerHTML = '<tr><td colspan="7" class="ld">No registered users yet.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = data.map(u => {
+    const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || '—';
+    const joined = u.created_at ? new Date(u.created_at).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    const statusColor = u.hr_status==='approved'?'var(--green)':u.hr_status==='rejected'?'#f87171':u.hr_status==='submitted'?'var(--pulse)':'var(--muted)';
+    const ats = u.ats_score!=null ? `<span style="color:${u.ats_score>=60?'var(--green)':'var(--yellow)'};font-weight:700">${u.ats_score}%</span>` : '<span style="color:var(--muted)">—</span>';
+    const isAdmin = u.email === ADM_EMAIL;
+    return `<tr style="border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='rgba(255,255,255,.03)'" onmouseout="this.style.background='transparent'">
+      <td style="padding:13px 16px">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:32px;height:32px;border-radius:50%;background:${isAdmin?'linear-gradient(135deg,var(--fire),var(--glow))':'linear-gradient(135deg,var(--pulse),var(--glow))'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;flex-shrink:0">${(name[0]||'?').toUpperCase()}</div>
+          <div>
+            <span style="font-size:14px;font-weight:600;color:#fff">${name}</span>
+            ${isAdmin?'<span style="font-size:10px;background:rgba(255,107,43,.15);color:var(--fire);padding:1px 6px;border-radius:4px;margin-left:6px;font-weight:700">ADMIN</span>':''}
+          </div>
+        </div>
+      </td>
+      <td style="padding:13px 16px;font-size:13px;color:var(--muted2)">${u.email||'—'}</td>
+      <td style="padding:13px 16px;font-size:13px;color:var(--muted2)">${u.target_role||'—'}</td>
+      <td style="padding:13px 16px">${ats}</td>
+      <td style="padding:13px 16px"><span style="font-size:12px;font-weight:600;color:${statusColor};text-transform:capitalize">${u.hr_status||'pending'}</span></td>
+      <td style="padding:13px 16px;font-size:13px;color:var(--muted)">${joined}</td>
+      <td style="padding:13px 16px">
+        ${isAdmin
+          ? '<span style="font-size:11px;color:var(--muted)">Protected</span>'
+          : `<button onclick="deleteUser('${u.id}','${(name||'user').replace(/'/g,"\\'")}','${(u.email||'').replace(/'/g,"\\'")}',this)" style="background:rgba(248,113,113,.1);color:#f87171;border:1px solid rgba(248,113,113,.25);border-radius:7px;padding:5px 11px;font-size:12px;cursor:pointer;font-family:var(--ff);font-weight:600;transition:all .2s" onmouseover="this.style.background='rgba(248,113,113,.22)'" onmouseout="this.style.background='rgba(248,113,113,.1)'">🗑 Delete</button>`
+        }
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function deleteApplication(id, name, btn) {
+  if(!confirm(`Permanently delete "${name}"'s application?\n\nThis removes their profile from the database. They will need to register again.\nThis action cannot be undone.`)) return;
+  if(btn) { btn.disabled=true; btn.textContent='…'; }
+
+  const {error} = await sb.from('profiles').delete().eq('id', id);
+  if(error) {
+    toast('❌ Error: ' + error.message);
+    if(btn) { btn.disabled=false; btn.textContent='🗑 Delete'; }
+    return;
+  }
+  toast(`🗑 Application from "${name}" permanently deleted.`);
+  await loadApps();
+  await loadUsers();
+}
+
+async function deleteUser(id, name, email, btn) {
+  if(!confirm(`Delete user "${name}" (${email})?\n\nThis will permanently remove their profile from the database. This action cannot be undone.`)) return;
+  if(btn) { btn.disabled=true; btn.textContent='…'; }
+
+  // Delete from profiles table
+  const {error} = await sb.from('profiles').delete().eq('id', id);
+  if(error) {
+    toast('❌ Error deleting user: ' + error.message);
+    if(btn) { btn.disabled=false; btn.textContent='🗑 Delete'; }
+    return;
+  }
+
+  toast(`🗑 User "${name}" deleted from profiles.`);
+  await loadUsers();
+  await loadApps();
+}
+
+/* ══ TOAST ══ */
+function toast(msg, dur=4000) {
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), dur);
+}
+
+/* ══ CHARTS ══ */
+let _funnelChart, _distChart, _intDistChart, _radarChart;
+
+function updateLiveCharts() {
+  if (!ALL_APPS.length) return;
+  const total    = ALL_APPS.filter(a=>['submitted','approved','rejected'].includes(a.hr_status)).length;
+  const atsPass  = ALL_APPS.filter(a=>a.ats_score>=60).length;
+  const reviewed = ALL_APPS.filter(a=>['approved','rejected'].includes(a.hr_status)).length;
+  const approved = ALL_APPS.filter(a=>a.hr_status==='approved').length;
+  const interviewed = ALL_APPS.filter(a=>a.interview_score!=null).length;
+  const shortlisted = ALL_APPS.filter(a=>a.interview_score>=70).length;
+
+  if (_funnelChart) {
+    _funnelChart.data.datasets[0].data = [total, atsPass, reviewed, approved, interviewed, shortlisted];
+    _funnelChart.update('none');
+  }
+
+  const a90=ALL_APPS.filter(a=>a.ats_score>=90).length;
+  const a75=ALL_APPS.filter(a=>a.ats_score>=75&&a.ats_score<90).length;
+  const a60=ALL_APPS.filter(a=>a.ats_score>=60&&a.ats_score<75).length;
+  const aLow=ALL_APPS.filter(a=>a.ats_score&&a.ats_score<60).length;
+  if (_distChart) { _distChart.data.datasets[0].data=[a90,a75,a60,aLow]; _distChart.update('none'); }
+
+  const wi=ALL_APPS.filter(a=>a.interview_score!=null);
+  const i90=wi.filter(a=>a.interview_score>=90).length;
+  const i75=wi.filter(a=>a.interview_score>=75&&a.interview_score<90).length;
+  const i60=wi.filter(a=>a.interview_score>=60&&a.interview_score<75).length;
+  const iLow=wi.filter(a=>a.interview_score<60).length;
+  if (_intDistChart) { _intDistChart.data.datasets[0].data=[i90,i75,i60,iLow]; _intDistChart.update('none'); }
+
+  if (_radarChart && wi.length) {
+    const avg = arr => Math.round(arr.reduce((s,v)=>s+v,0)/arr.length);
+    const avgScore = avg(wi.map(a=>a.interview_score));
+    _radarChart.data.datasets[0].data=[avgScore,avgScore-4,avgScore-2,avgScore-6,avgScore-3];
+    _radarChart.update('none');
+  }
+}
+
+function initCharts() {
+  const months=['Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar'];
+  const co={responsive:true,plugins:{legend:{labels:{color:'#94a3b8',font:{size:12}}}},scales:{x:{ticks:{color:'#64748b'},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#64748b'},grid:{color:'rgba(255,255,255,.04)'}}}};
+
+  _funnelChart = new Chart(document.getElementById('funnelChart'),{type:'bar',data:{labels:['Applied','ATS Passed','HR Reviewed','Approved','Interviewed','Shortlisted'],datasets:[{data:[24,19,16,14,10,7],backgroundColor:['rgba(0,212,255,.7)','rgba(0,212,255,.55)','rgba(0,212,255,.4)','rgba(34,197,94,.6)','rgba(34,197,94,.45)','rgba(34,197,94,.3)'],borderRadius:5,borderWidth:0}]},options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#64748b'},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:'#94a3b8'},grid:{display:false}}}}});
+  _distChart = new Chart(document.getElementById('distChart'),{type:'doughnut',data:{labels:['90–100%','75–89%','60–74%','<60%'],datasets:[{data:[4,8,7,5],backgroundColor:['#22c55e','#00d4ff','#eab308','#ef4444'],borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:'right',labels:{color:'#94a3b8',font:{size:11},padding:10}}}}});
+  _intDistChart = new Chart(document.getElementById('intDistChart'),{type:'bar',data:{labels:['90–100','75–89','60–74','<60'],datasets:[{label:'Candidates',data:[2,5,3,2],backgroundColor:['#22c55e','#00d4ff','#eab308','#ef4444'],borderRadius:5}]},options:{...co,plugins:{legend:{display:false}}}});
+  _radarChart = new Chart(document.getElementById('radarChart'),{type:'radar',data:{labels:['Technical','Communication','Problem Solving','Depth','Response Quality'],datasets:[{label:'Avg Score',data:[74,70,72,68,66],borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,.07)',pointBackgroundColor:'#00d4ff'},{label:'Top Performer',data:[93,88,90,88,85],borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.04)',pointBackgroundColor:'#22c55e'}]},options:{responsive:true,plugins:{legend:{labels:{color:'#94a3b8',font:{size:11}}}},scales:{r:{ticks:{display:false},grid:{color:'rgba(255,255,255,.08)'},pointLabels:{color:'#94a3b8',font:{size:10}},angleLines:{color:'rgba(255,255,255,.06)'}}}}});
+  new Chart(document.getElementById('hiringChart'),{type:'bar',data:{labels:months,datasets:[{label:'Applications',data:[12,14,10,18,16,22,24],backgroundColor:'rgba(0,212,255,.5)',borderRadius:4},{label:'Hired',data:[2,3,2,4,3,5,4],backgroundColor:'rgba(34,197,94,.6)',borderRadius:4}]},options:co});
+  new Chart(document.getElementById('srcChart'),{type:'doughnut',data:{labels:['SkillPulse Platform','LinkedIn','Referral','Job Boards','Campus'],datasets:[{data:[35,28,18,12,7],backgroundColor:['#00d4ff','#6c3aed','#22c55e','#eab308','#ff6b2b'],borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:'right',labels:{color:'#94a3b8',font:{size:11},padding:10}}}}});
+  new Chart(document.getElementById('trendChart'),{type:'line',data:{labels:months,datasets:[{label:'LLM/AI',data:[20,30,42,55,63,72,82,91],borderColor:'#6c3aed',tension:.4,pointRadius:3},{label:'Python',data:[60,63,66,70,74,78,81,84],borderColor:'#00d4ff',tension:.4,pointRadius:3},{label:'Go',data:[30,34,38,42,47,52,56,60],borderColor:'#22c55e',tension:.4,pointRadius:3}]},options:co});
+  new Chart(document.getElementById('declTrendChart'),{type:'line',data:{labels:months,datasets:[{label:'jQuery',data:[60,55,50,46,42,38,33,28],borderColor:'#f87171',tension:.4,pointRadius:3,borderDash:[4,3]},{label:'PHP/Laravel',data:[55,52,49,46,43,40,36,31],borderColor:'#fb923c',tension:.4,pointRadius:3,borderDash:[4,3]},{label:'AngularJS',data:[40,36,32,28,25,22,19,15],borderColor:'#94a3b8',tension:.4,pointRadius:3,borderDash:[4,3]}]},options:co});
+}
+</script>
+
+<!-- ══════════════════════════════════════════
+     KEYBOARD SHORTCUTS MODAL
+══════════════════════════════════════════ -->
+<div id="shortcutsModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:200;align-items:center;justify-content:center">
+  <div style="background:#12121f;border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:32px;width:620px;max-width:95vw;max-height:88vh;overflow-y:auto;position:relative;box-shadow:0 32px 80px rgba(0,0,0,.6)">
+    <button onclick="closeShortcuts()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.06);border:none;border-radius:8px;color:#64748b;cursor:pointer;font-size:16px;padding:6px 11px;transition:all .2s" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='#64748b'">✕</button>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px">
+      <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,rgba(0,212,255,.2),rgba(124,58,237,.2));border:1px solid rgba(0,212,255,.2);display:flex;align-items:center;justify-content:center;font-size:20px">⌨️</div>
+      <div>
+        <div style="font-size:20px;font-weight:800;color:#fff;letter-spacing:-.4px">Keyboard Shortcuts</div>
+        <div style="font-size:13px;color:#64748b;margin-top:2px">Navigate SkillPulse HR faster</div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Navigation</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="sc-row"><kbd>G</kbd><span>then</span><kbd>D</kbd><span style="color:#e2e8f0">Dashboard</span></div>
+        <div class="sc-row"><kbd>G</kbd><span>then</span><kbd>A</kbd><span style="color:#e2e8f0">Applications</span></div>
+        <div class="sc-row"><kbd>G</kbd><span>then</span><kbd>I</kbd><span style="color:#e2e8f0">Interview Scores</span></div>
+        <div class="sc-row"><kbd>G</kbd><span>then</span><kbd>P</kbd><span style="color:#e2e8f0">Job Postings</span></div>
+        <div class="sc-row"><kbd>G</kbd><span>then</span><kbd>M</kbd><span style="color:#e2e8f0">Market Analytics</span></div>
+        <div class="sc-row"><kbd>G</kbd><span>then</span><kbd>T</kbd><span style="color:#e2e8f0">Skill Trends</span></div>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Actions</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="sc-row"><kbd>R</kbd><span style="color:#e2e8f0">Refresh data</span></div>
+        <div class="sc-row"><kbd>N</kbd><span style="color:#e2e8f0">New Job Posting</span></div>
+        <div class="sc-row"><kbd>F</kbd><span style="color:#e2e8f0">Filter applications</span></div>
+        <div class="sc-row"><kbd>Esc</kbd><span style="color:#e2e8f0">Close modal / dialog</span></div>
+      </div>
+    </div>
+
+    <!-- Help -->
+    <div style="margin-bottom:8px">
+      <div style="font-size:11px;font-weight:700;color:#64748b;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px">Help</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="sc-row"><kbd>?</kbd><span style="color:#e2e8f0">Open shortcuts</span></div>
+        <div class="sc-row"><kbd>T</kbd><span style="color:#e2e8f0">Start feature tour</span></div>
+      </div>
+    </div>
+
+    <div style="margin-top:22px;padding:14px;background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.1);border-radius:10px;font-size:12px;color:#64748b;text-align:center">
+      💡 Press <kbd style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:5px;padding:2px 7px;color:#94a3b8;font-size:11px">?</kbd> anytime to open this panel
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     FEATURE TOUR OVERLAY
+══════════════════════════════════════════ -->
+<div id="tourOverlay" style="display:none;position:fixed;inset:0;z-index:300;pointer-events:none">
+  <!-- Dark backdrop with spotlight cutout -->
+  <div id="tourBackdrop" style="position:absolute;inset:0;background:rgba(6,6,15,.82);pointer-events:all"></div>
+  <!-- Spotlight highlight -->
+  <div id="tourSpotlight" style="position:absolute;border-radius:12px;box-shadow:0 0 0 4px rgba(0,212,255,.6),0 0 0 9999px rgba(6,6,15,.82);transition:all .4s cubic-bezier(.4,0,.2,1);pointer-events:none;z-index:1"></div>
+  <!-- Tour tooltip card -->
+  <div id="tourCard" style="position:absolute;width:340px;background:#12121f;border:1px solid rgba(0,212,255,.25);border-radius:16px;padding:22px;box-shadow:0 24px 60px rgba(0,0,0,.6);z-index:2;pointer-events:all;transition:all .35s cubic-bezier(.4,0,.2,1)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div id="tourIcon" style="font-size:22px">📊</div>
+        <div style="font-size:10px;font-weight:700;color:#00d4ff;letter-spacing:1px;text-transform:uppercase" id="tourStep">Step 1 of 7</div>
+      </div>
+      <button onclick="endTour()" style="background:none;border:none;color:#475569;cursor:pointer;font-size:15px;transition:color .2s;padding:2px" onmouseover="this.style.color='#94a3b8'" onmouseout="this.style.color='#475569'">✕</button>
+    </div>
+    <div id="tourTitle" style="font-size:17px;font-weight:700;color:#fff;margin-bottom:8px;letter-spacing:-.3px">HR Dashboard</div>
+    <div id="tourDesc" style="font-size:13px;color:#94a3b8;line-height:1.7;margin-bottom:18px"></div>
+    <!-- Progress dots -->
+    <div id="tourDots" style="display:flex;gap:5px;margin-bottom:18px"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <button id="tourPrev" onclick="tourPrev()" style="padding:8px 16px;background:rgba(255,255,255,.06);color:#94a3b8;border:1px solid rgba(255,255,255,.08);border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s" onmouseover="this.style.background='rgba(255,255,255,.1)'" onmouseout="this.style.background='rgba(255,255,255,.06)'">← Back</button>
+      <button id="tourNext" onclick="tourNext()" style="padding:8px 20px;background:linear-gradient(135deg,#00d4ff,#009fc2);color:#06060f;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .2s">Next →</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.sc-row{display:flex;align-items:center;gap:7px;padding:8px 12px;background:rgba(255,255,255,.03);border-radius:8px;border:1px solid rgba(255,255,255,.05)}
+kbd{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);border-bottom:2px solid rgba(255,255,255,.2);border-radius:6px;padding:3px 8px;font-size:12px;font-weight:700;color:#e2e8f0;font-family:-apple-system,system-ui,sans-serif;white-space:nowrap}
+.sc-row span{font-size:13px;color:#64748b}
+</style>
+
+<script>
+/* ══════════════════════════════════════
+   KEYBOARD SHORTCUTS MODAL
+══════════════════════════════════════ */
+function openShortcuts() {
+  document.getElementById('shortcutsModal').style.display = 'flex';
+}
+function closeShortcuts() {
+  document.getElementById('shortcutsModal').style.display = 'none';
+}
+document.getElementById('shortcutsModal').addEventListener('click', function(e) {
+  if (e.target === this) closeShortcuts();
+});
+
+/* ══════════════════════════════════════
+   KEYBOARD LISTENER
+══════════════════════════════════════ */
+let gPressed = false, gTimer = null;
+document.addEventListener('keydown', function(e) {
+  // Don't fire shortcuts when typing in inputs
+  if (['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)) return;
+  // Don't fire if a modal is open (except for Escape and ?)
+  const shortcutsOpen = document.getElementById('shortcutsModal').style.display === 'flex';
+  const tourOpen = document.getElementById('tourOverlay').style.display !== 'none';
+
+  if (e.key === 'Escape') {
+    closeShortcuts(); endTour();
+    document.getElementById('mover')?.classList.remove('show');
+    return;
+  }
+  if (e.key === '?') { openShortcuts(); return; }
+  if (shortcutsOpen || tourOpen) return;
+
+  if (e.key.toLowerCase() === 'g') {
+    gPressed = true;
+    clearTimeout(gTimer);
+    gTimer = setTimeout(() => { gPressed = false; }, 1500);
+    return;
+  }
+
+  if (gPressed) {
+    gPressed = false;
+    clearTimeout(gTimer);
+    const navMap = { d:'dashboard', a:'applications', i:'interviews', p:'postings', m:'analytics', t:'trends' };
+    const dest = navMap[e.key.toLowerCase()];
+    if (dest) { go(dest); showToastShortcut('Navigated to ' + dest); }
+    return;
+  }
+
+  // Single-key shortcuts
+  if (e.key.toLowerCase() === 'r') { loadApps(); showToastShortcut('🔄 Data refreshed'); }
+  if (e.key.toLowerCase() === 'n') { go('postings'); setTimeout(togglePostForm, 200); showToastShortcut('📝 New posting'); }
+  if (e.key.toLowerCase() === 't' && !tourOpen) { startTour(); }
+  if (e.key.toLowerCase() === 'f') {
+    const sel = document.getElementById('filterSel');
+    if (sel) { go('applications'); setTimeout(() => sel.focus(), 200); }
+  }
+});
+
+function showToastShortcut(msg) {
+  if (typeof toast === 'function') toast('⌨️ ' + msg, 2000);
+}
+
+/* ══════════════════════════════════════
+   FEATURE TOUR
+══════════════════════════════════════ */
+const TOUR_STEPS = [
+  {
+    icon: '📊',
+    title: 'HR Dashboard',
+    desc: 'Your command centre. See total applications, pending reviews, approval counts, ATS scores and interview completion in real time — all pulled live from Supabase.',
+    target: '#pg-dashboard .srow',
+    nav: 'dashboard',
+    position: 'bottom'
+  },
+  {
+    icon: '📋',
+    title: 'Applications Table',
+    desc: 'Every candidate who submitted a resume appears here. Review their ATS score, approve or reject with one click. Approved candidates are automatically unlocked for the Virtual Interview.',
+    target: '.ni[onclick*="applications"]',
+    nav: null,
+    position: 'right'
+  },
+  {
+    icon: '✅',
+    title: 'Approve & Reject',
+    desc: 'Click ✓ Approve to unlock the candidate\'s Interview Room. Click ✕ Reject to close their application. Both actions update Supabase instantly and the candidate sees their status change in real time.',
+    target: '#pg-dashboard .g2b',
+    nav: 'dashboard',
+    position: 'bottom'
+  },
+  {
+    icon: '🎤',
+    title: 'Interview Scores',
+    desc: 'Once candidates complete their virtual AI interview, scores appear here with a radar chart showing Technical, Communication, Problem Solving, Depth and Response Quality breakdown.',
+    target: '.ni[onclick*="interviews"]',
+    nav: null,
+    position: 'right'
+  },
+  {
+    icon: '📝',
+    title: 'Job Postings',
+    desc: 'Post new open roles with required skills, experience level and location. Candidates see these postings and can tailor their resume accordingly to improve their ATS match score.',
+    target: '.ni[onclick*="postings"]',
+    nav: null,
+    position: 'right'
+  },
+  {
+    icon: '📈',
+    title: 'Market Analytics',
+    desc: 'Industry-level hiring intelligence — hiring volume trends, candidate sources, salary benchmarks vs market rates. Use this to calibrate your JD requirements and compensation packages.',
+    target: '.ni[onclick*="analytics"]',
+    nav: null,
+    position: 'right'
+  },
+  {
+    icon: '🔥',
+    title: 'Skill Trends (20 Skills)',
+    desc: 'Live demand data for 20 technologies. Use this when writing JDs — if a skill is trending at +52%, it\'s worth requiring. If it\'s at -12%, maybe drop it. Updated monthly from 6,000+ job portals.',
+    target: '.ni[onclick*="trends"]',
+    nav: null,
+    position: 'right'
+  }
+];
+
+let tourIdx = 0;
+
+function startTour() {
+  tourIdx = 0;
+  document.getElementById('tourOverlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+  renderTourStep();
+}
+
+function endTour() {
+  document.getElementById('tourOverlay').style.display = 'none';
+  document.body.style.overflow = '';
+  // Remove any spotlight highlight
+  document.querySelectorAll('.tour-highlight').forEach(el => el.classList.remove('tour-highlight'));
+}
+
+function tourNext() {
+  if (tourIdx < TOUR_STEPS.length - 1) { tourIdx++; renderTourStep(); }
+  else { endTour(); toast('🎉 Tour complete! Press ? anytime for keyboard shortcuts.', 4000); }
+}
+function tourPrev() {
+  if (tourIdx > 0) { tourIdx--; renderTourStep(); }
+}
+
+function renderTourStep() {
+  const step = TOUR_STEPS[tourIdx];
+  const total = TOUR_STEPS.length;
+
+  // Navigate if needed
+  if (step.nav) go(step.nav);
+
+  // Update card content
+  document.getElementById('tourIcon').textContent = step.icon;
+  document.getElementById('tourStep').textContent = `Step ${tourIdx + 1} of ${total}`;
+  document.getElementById('tourTitle').textContent = step.title;
+  document.getElementById('tourDesc').textContent = step.desc;
+
+  // Update dots
+  const dotsEl = document.getElementById('tourDots');
+  dotsEl.innerHTML = Array.from({length: total}, (_, i) =>
+    `<div style="width:${i===tourIdx?20:7}px;height:7px;border-radius:100px;background:${i===tourIdx?'#00d4ff':'rgba(255,255,255,.15)'};transition:all .3s"></div>`
+  ).join('');
+
+  // Buttons
+  document.getElementById('tourPrev').style.opacity = tourIdx === 0 ? '0.35' : '1';
+  document.getElementById('tourPrev').disabled = tourIdx === 0;
+  document.getElementById('tourNext').textContent = tourIdx === total - 1 ? '✓ Finish' : 'Next →';
+
+  // Spotlight the target element
+  setTimeout(() => spotlightEl(step.target, step.position), step.nav ? 350 : 50);
+}
+
+function spotlightEl(selector, position) {
+  const el = document.querySelector(selector);
+  const spotlight = document.getElementById('tourSpotlight');
+  const card = document.getElementById('tourCard');
+  if (!el) { card.style.top = '50%'; card.style.left = '50%'; card.style.transform = 'translate(-50%,-50%)'; return; }
+
+  const rect = el.getBoundingClientRect();
+  const pad = 8;
+  spotlight.style.left   = (rect.left - pad) + 'px';
+  spotlight.style.top    = (rect.top - pad) + 'px';
+  spotlight.style.width  = (rect.width + pad*2) + 'px';
+  spotlight.style.height = (rect.height + pad*2) + 'px';
+
+  // Position card near the element
+  const cw = 340, ch = 260;
+  let cx, cy;
+  if (position === 'right') {
+    cx = Math.min(rect.right + 20, window.innerWidth - cw - 20);
+    cy = Math.max(rect.top - 20, 20);
+  } else { // bottom
+    cx = Math.max(Math.min(rect.left, window.innerWidth - cw - 20), 20);
+    cy = Math.min(rect.bottom + 18, window.innerHeight - ch - 20);
+  }
+  card.style.left = cx + 'px';
+  card.style.top  = cy + 'px';
+  card.style.transform = '';
+}
+</script>
+</body>
+</html>

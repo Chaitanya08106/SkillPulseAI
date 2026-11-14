@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign Up | SkillPulse</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ff:'Sora',system-ui,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --ink:#06060f;--surface:#09091a;--card:#0e0e1f;--card2:#13132a;
+  --border:rgba(255,255,255,.07);--border2:rgba(255,255,255,.13);
+  --pulse:#00d4ff;--glow:#7c3aed;--green:#22c55e;--fire:#ff6b2b;--yellow:#f59e0b;
+  --text:#e2e8f0;--muted:#64748b;--muted2:#94a3b8;
+  --r:12px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--ff);background:var(--ink);color:var(--text);min-height:100vh;display:grid;grid-template-columns:1fr 1fr;-webkit-font-smoothing:antialiased}
+
+/* LEFT */
+.left{background:linear-gradient(145deg,#06060f 0%,#0a0a1e 60%,#0d0820 100%);position:relative;overflow:hidden;display:flex;flex-direction:column;padding:48px;justify-content:space-between}
+.left::before{content:'';position:absolute;width:700px;height:700px;border-radius:50%;background:radial-gradient(circle,rgba(124,58,237,.12) 0%,transparent 65%);top:-250px;right:-150px;pointer-events:none}
+.left::after{content:'';position:absolute;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,rgba(0,212,255,.08) 0%,transparent 65%);bottom:-100px;left:-150px;pointer-events:none}
+.grid-bg{position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.035) 1px,transparent 1px);background-size:32px 32px;pointer-events:none}
+.logo{font-size:22px;font-weight:800;letter-spacing:-.8px;color:#fff;text-decoration:none;z-index:1;display:flex;align-items:center;gap:8px}
+.logo-dot{width:8px;height:8px;border-radius:50%;background:var(--pulse);box-shadow:0 0 10px var(--pulse)}
+.logo span{color:var(--pulse)}
+.lc{z-index:1}
+.lc-tag{display:inline-flex;align-items:center;gap:8px;background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);border-radius:100px;padding:6px 14px;font-size:12px;color:var(--pulse);font-weight:600;margin-bottom:20px;letter-spacing:.3px}
+.lc-tag::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--pulse);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.lc h2{font-size:40px;font-weight:800;color:#fff;line-height:1.08;letter-spacing:-1.8px;margin-bottom:18px}
+.lc h2 em{font-style:normal;background:linear-gradient(130deg,var(--pulse),var(--glow));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.lc p{color:var(--muted2);font-size:15px;line-height:1.75;max-width:380px}
+.stats-row{display:flex;gap:28px;margin-top:24px}
+.stat-num{font-size:26px;font-weight:800;color:#fff;letter-spacing:-1px;font-family:var(--mono)}
+.stat-lbl{font-size:11px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.5px}
+.checks{z-index:1}
+.chk{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--border);font-size:13.5px;color:var(--muted2)}
+.ci{width:22px;height:22px;border-radius:6px;background:rgba(0,212,255,.12);color:var(--pulse);display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;font-weight:700}
+
+/* RIGHT */
+.right{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 48px;background:var(--surface);overflow-y:auto}
+.card{width:100%;max-width:450px}
+.card h1{font-size:26px;font-weight:800;color:#fff;letter-spacing:-.7px;margin-bottom:5px}
+.card .sub{color:var(--muted);font-size:14px;margin-bottom:22px}
+
+/* Step indicator */
+.step-ind{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.s-dot{width:26px;height:26px;border-radius:50%;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--muted);font-family:var(--mono);transition:all .3s;flex-shrink:0}
+.s-dot.done{background:var(--pulse);border-color:var(--pulse);color:#06060f}
+.s-dot.active{background:rgba(0,212,255,.15);border-color:var(--pulse);color:var(--pulse)}
+.s-line{flex:1;height:2px;background:var(--border);border-radius:1px;transition:background .4s}
+.s-line.done{background:var(--pulse)}
+.step-label{font-size:11.5px;color:var(--muted);margin-bottom:18px;font-weight:500}
+
+/* Fields */
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.field{margin-bottom:14px}
+.field label{display:flex;align-items:center;justify-content:space-between;font-size:11.5px;font-weight:600;color:var(--muted2);margin-bottom:7px;text-transform:uppercase;letter-spacing:.5px}
+.field input,.field select{width:100%;padding:12px 14px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);color:#fff;font-size:14px;font-family:var(--ff);transition:border-color .2s,box-shadow .2s;outline:none;-webkit-appearance:none;appearance:none}
+.field input::placeholder{color:var(--muted)}
+.field input:focus,.field select:focus{border-color:var(--pulse);box-shadow:0 0 0 3px rgba(0,212,255,.1)}
+.field input.valid{border-color:rgba(34,197,94,.5)}
+.field input.invalid{border-color:rgba(248,113,113,.5)}
+.field select option{background:var(--card2)}
+.phone-wrap{display:flex;gap:8px}
+.country-sel{width:105px;flex-shrink:0;padding:12px 10px;background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);color:#fff;font-size:13px;font-family:var(--ff);outline:none;-webkit-appearance:none;transition:border-color .2s}
+.country-sel:focus{border-color:var(--pulse)}
+
+/* Password */
+.sbar{display:flex;gap:3px;margin-top:7px}
+.seg{flex:1;height:3px;border-radius:2px;background:var(--border);transition:background .3s}
+.pw-hint{font-size:11px;color:var(--muted);margin-top:5px;transition:color .3s}
+
+/* Checkboxes */
+.check-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:14px}
+.custom-cb{width:18px;height:18px;border:1.5px solid var(--border2);border-radius:5px;background:var(--card);flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .2s;margin-top:1px;font-size:11px;font-weight:700}
+.custom-cb.checked{background:var(--pulse);border-color:var(--pulse);color:#06060f}
+.check-label{font-size:12.5px;color:var(--muted);line-height:1.6}
+.check-label a{color:var(--pulse);text-decoration:none;font-weight:600;cursor:pointer}
+.check-label a:hover{text-decoration:underline}
+
+/* Buttons */
+.btn-full{width:100%;padding:13px;border-radius:var(--r);border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:var(--ff);transition:all .25s;margin-bottom:10px}
+.btn-pulse{background:linear-gradient(135deg,var(--pulse),#009fc2);color:#06060f}
+.btn-pulse:hover{box-shadow:0 0 32px rgba(0,212,255,.4);transform:translateY(-1px)}
+.btn-pulse:disabled{opacity:.5;pointer-events:none;transform:none}
+.btn-google{background:var(--card);color:var(--text);border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;gap:10px}
+.btn-google:hover{border-color:rgba(255,255,255,.25);background:rgba(255,255,255,.04)}
+.divider{display:flex;align-items:center;gap:14px;margin:14px 0;color:var(--muted);font-size:12px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.err{background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.3);color:#f87171;padding:12px 14px;border-radius:var(--r);font-size:13px;margin-bottom:14px;display:none;align-items:center;gap:9px}
+.err.show{display:flex}
+.ok{background:rgba(34,197,94,.08);border:1.5px solid rgba(34,197,94,.3);color:#4ade80;padding:16px;border-radius:var(--r);font-size:14px;text-align:center;display:none;line-height:1.7}
+.ok.show{display:block}
+.ok a{color:var(--green);font-weight:600}
+.form-footer{text-align:center;font-size:14px;color:var(--muted);margin-top:16px}
+.form-footer a{color:var(--pulse);text-decoration:none;font-weight:600}
+
+/* MODAL SYSTEM */
+.modal-bg{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.8);backdrop-filter:blur(10px);display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.show{display:flex}
+.modal{background:var(--card);border:1px solid var(--border2);border-radius:18px;width:100%;max-width:700px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 40px 100px rgba(0,0,0,.7);animation:mIn .3s cubic-bezier(.34,1.56,.64,1)}
+@keyframes mIn{from{opacity:0;transform:scale(.94) translateY(12px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{padding:24px 28px 18px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;justify-content:space-between;background:linear-gradient(135deg,rgba(0,212,255,.04),transparent);flex-shrink:0}
+.modal-header-text h2{font-size:20px;font-weight:800;color:#fff;letter-spacing:-.5px;margin-bottom:3px}
+.modal-header-text p{font-size:12px;color:var(--muted)}
+.modal-close{width:32px;height:32px;border-radius:8px;background:var(--card2);border:1px solid var(--border);color:var(--muted2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;transition:all .2s;flex-shrink:0;margin-left:16px}
+.modal-close:hover{background:rgba(248,113,113,.15);color:#f87171;border-color:rgba(248,113,113,.3)}
+.modal-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--card);flex-shrink:0;overflow-x:auto}
+.modal-tab{padding:13px 18px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap;font-family:var(--ff)}
+.modal-tab:hover{color:var(--text)}
+.modal-tab.on{color:var(--pulse);border-bottom-color:var(--pulse)}
+.modal-body{padding:28px;overflow-y:auto;flex:1;color:var(--muted2);font-size:14px;line-height:1.8}
+.modal-body::-webkit-scrollbar{width:4px}
+.modal-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.modal-footer{padding:18px 28px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0;background:rgba(255,255,255,.01)}
+.mb-btn{padding:11px 24px;border-radius:9px;border:none;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--ff);transition:all .2s}
+.mb-primary{background:linear-gradient(135deg,var(--pulse),#009fc2);color:#06060f}
+.mb-primary:hover{box-shadow:0 0 20px rgba(0,212,255,.4);transform:translateY(-1px)}
+.mb-secondary{background:var(--card2);color:var(--text);border:1px solid var(--border2)}
+.mb-secondary:hover{border-color:rgba(255,255,255,.25)}
+
+/* Legal content */
+.legal-section{margin-bottom:26px}
+.legal-section h3{font-size:15px;font-weight:700;color:#fff;margin-bottom:10px;letter-spacing:-.3px;display:flex;align-items:center;gap:10px}
+.legal-section h3::before{content:'';width:3px;height:16px;background:linear-gradient(var(--pulse),var(--glow));border-radius:2px;flex-shrink:0}
+.legal-section p{margin-bottom:10px;line-height:1.8}
+.legal-section ul{list-style:none;padding:0}
+.legal-section ul li{padding:6px 0 6px 22px;position:relative;border-bottom:1px solid rgba(255,255,255,.03)}
+.legal-section ul li::before{content:'→';position:absolute;left:0;color:var(--pulse);font-size:12px;top:8px}
+.legal-section ul li:last-child{border-bottom:none}
+.l-highlight{background:rgba(0,212,255,.05);border:1px solid rgba(0,212,255,.15);border-radius:10px;padding:14px 16px;margin-bottom:18px;color:var(--text);font-size:13.5px;line-height:1.7}
+.l-highlight strong{color:var(--pulse)}
+.l-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:100px;padding:5px 14px;font-size:11.5px;color:var(--green);font-weight:600;margin-bottom:18px}
+.l-date{font-size:12px;color:var(--muted);margin-bottom:18px;display:flex;align-items:center;gap:6px}
+.l-warn{background:rgba(248,113,113,.06);border:1px solid rgba(248,113,113,.2);border-radius:10px;padding:12px 16px;margin-bottom:16px;color:#fca5a5;font-size:13px}
+
+@media(max-width:900px){body{grid-template-columns:1fr}.left{display:none}.right{padding:32px 24px}.row2{grid-template-columns:1fr}}
+.logo-text{display:inline;letter-spacing:-.5px}
+</style>
+</head>
+<body>
+
+<!-- LEFT -->
+<div class="left">
+  <div class="grid-bg"></div>
+  <a href="index.html" class="logo"><div class="logo-dot"></div><span class="logo-text">Skill<span style="color:var(--pulse)">Pulse</span></span></a>
+  <div class="lc">
+    <div class="lc-tag">Now in Beta &middot; Free to Join</div>
+    <h2>Unlock your<br><em>full potential</em><br>with data</h2>
+    <p>Join SkillPulse to discover in-demand skills, get AI resume scoring, attend virtual interviews, and connect directly with top companies.</p>
+    <div class="stats-row">
+      <div><div class="stat-num">50K+</div><div class="stat-lbl">Candidates</div></div>
+      <div><div class="stat-num">6.2K</div><div class="stat-lbl">Job Portals</div></div>
+      <div><div class="stat-num">94%</div><div class="stat-lbl">Placement Rate</div></div>
+    </div>
+  </div>
+  <div class="checks">
+    <div class="chk"><div class="ci">&#10003;</div> Free AI-powered ATS resume scoring on signup</div>
+    <div class="chk"><div class="ci">&#10003;</div> Real-time market intelligence from 6K+ portals</div>
+    <div class="chk"><div class="ci">&#10003;</div> AI virtual interviews with instant detailed scoring</div>
+    <div class="chk"><div class="ci">&#10003;</div> Send resume directly to matched companies</div>
+  </div>
+</div>
+
+<!-- RIGHT -->
+<div class="right">
+  <div class="card">
+    <h1>Create your account</h1>
+    <div class="sub">Start discovering your market intelligence today</div>
+
+    <div class="step-ind">
+      <div class="s-dot active" id="sd1">1</div>
+      <div class="s-line" id="sl1"></div>
+      <div class="s-dot" id="sd2">2</div>
+      <div class="s-line" id="sl2"></div>
+      <div class="s-dot" id="sd3">3</div>
+    </div>
+    <div class="step-label" id="stepLabel">Step 1 of 3 &mdash; Personal Info</div>
+
+    <div class="err" id="errMsg"><span>&#9888;</span><span id="errTxt"></span></div>
+    <div class="ok" id="okMsg">&#127881; Account created successfully!<br>Check your email to verify, then <a href="login.html">sign in &rarr;</a></div>
+
+    <!-- STEP 1 -->
+    <div id="step1">
+      <div class="row2">
+        <div class="field"><label>First Name</label><input type="text" id="fn" placeholder="Arjun" oninput="vf(this,'name')" /></div>
+        <div class="field"><label>Last Name</label><input type="text" id="ln" placeholder="Sharma" oninput="vf(this,'name')" /></div>
+      </div>
+      <div class="field"><label>Email Address</label><input type="email" id="em" placeholder="you@example.com" oninput="vf(this,'email')" /></div>
+      <div class="field">
+        <label>Phone <span style="color:var(--muted);text-transform:none;font-weight:400;font-size:11px">Optional</span></label>
+        <div class="phone-wrap">
+          <select class="country-sel" id="cc">
+            <option value="+91">&#127470;&#127475; +91</option>
+            <option value="+1">&#127482;&#127480; +1</option>
+            <option value="+44">&#127468;&#127463; +44</option>
+            <option value="+61">&#127462;&#127482; +61</option>
+            <option value="+65">&#127480;&#127468; +65</option>
+            <option value="+971">&#127462;&#127466; +971</option>
+          </select>
+          <input type="tel" id="phone" placeholder="98765 43210" style="flex:1" />
+        </div>
+      </div>
+      <button class="btn-full btn-pulse" onclick="goStep2()">Continue &rarr;</button>
+    </div>
+
+    <!-- STEP 2 -->
+    <div id="step2" style="display:none">
+      <div class="field">
+        <label>Target Role</label>
+        <select id="role">
+          <option value="" disabled selected>Select your target role</option>
+          <optgroup label="Engineering">
+            <option>Software Engineer</option><option>Frontend Developer</option>
+            <option>Backend Developer</option><option>Full Stack Developer</option>
+            <option>DevOps / Cloud Engineer</option>
+          </optgroup>
+          <optgroup label="Data &amp; AI">
+            <option>Data Scientist</option><option>ML / AI Engineer</option>
+            <option>Data Analyst</option><option>Data Engineer</option>
+          </optgroup>
+          <optgroup label="Other">
+            <option>Product Manager</option><option>Cybersecurity Analyst</option>
+            <option>UI/UX Designer</option><option>Other</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="field">
+        <label>Experience Level</label>
+        <select id="expLevel">
+          <option value="" disabled selected>Select experience level</option>
+          <option value="fresher">Fresher / Student</option>
+          <option value="0-1">0&ndash;1 Year</option><option value="1-3">1&ndash;3 Years</option>
+          <option value="3-5">3&ndash;5 Years</option><option value="5+">5+ Years</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Current Location</label>
+        <select id="location">
+          <option value="" disabled selected>Select your city</option>
+          <option>Bangalore</option><option>Mumbai</option><option>Hyderabad</option>
+          <option>Chennai</option><option>Pune</option><option>Delhi NCR</option>
+          <option>Kolkata</option><option>Ahmedabad</option><option>Other India</option><option>Outside India</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn-full btn-google" onclick="goStep(1)" style="flex:.45;margin-bottom:0">&larr; Back</button>
+        <button class="btn-full btn-pulse" onclick="goStep3()" style="flex:1;margin-bottom:0">Continue &rarr;</button>
+      </div>
+    </div>
+
+    <!-- STEP 3 -->
+    <div id="step3" style="display:none">
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="pw" placeholder="Create a strong password" oninput="strength(this.value)" />
+        <div class="sbar"><div class="seg" id="s1"></div><div class="seg" id="s2"></div><div class="seg" id="s3"></div><div class="seg" id="s4"></div></div>
+        <div class="pw-hint" id="pwHint">Use 8+ characters with uppercase, numbers &amp; symbols</div>
+      </div>
+      <div class="field">
+        <label>Confirm Password</label>
+        <input type="password" id="cpw" placeholder="&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;&#8226;" oninput="checkMatch()" />
+      </div>
+
+      <div class="check-row">
+        <div class="custom-cb" id="termsCb" onclick="toggleCb('terms')"></div>
+        <div class="check-label">I agree to SkillPulse&apos;s <a onclick="openModal('terms')">Terms of Service</a> and <a onclick="openModal('privacy')">Privacy Policy</a></div>
+      </div>
+      <div class="check-row">
+        <div class="custom-cb checked" id="mktCb" onclick="toggleCb('mkt')">&#10003;</div>
+        <div class="check-label">Receive career tips, job alerts and market insights via email (optional)</div>
+      </div>
+
+      <button class="btn-full btn-pulse" id="createBtn" onclick="doSignup()">&#128640; Create Account &rarr;</button>
+      <div class="divider">or</div>
+      <button class="btn-full btn-google" onclick="googleSignup()">
+        <svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+        Continue with Google
+      </button>
+      <button class="btn-full btn-google" onclick="goStep(2)" style="margin-top:4px">&larr; Back</button>
+    </div>
+
+    <div class="form-footer">Already have an account? <a href="login.html">Sign in &rarr;</a></div>
+  </div>
+</div>
+
+<!-- ══ TERMS MODAL ══ -->
+<div class="modal-bg" id="termsModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-text"><h2>&#128203; Terms of Service</h2><p>Please read these terms carefully before using SkillPulse</p></div>
+      <button class="modal-close" onclick="closeModal('terms')">&#10005;</button>
+    </div>
+    <div class="modal-tabs" id="termsTabs">
+      <div class="modal-tab on" onclick="switchTab('terms','overview',this)">Overview</div>
+      <div class="modal-tab" onclick="switchTab('terms','usage',this)">Usage Rules</div>
+      <div class="modal-tab" onclick="switchTab('terms','liability',this)">Liability &amp; Legal</div>
+    </div>
+    <div class="modal-body">
+      <div id="terms-overview">
+        <div class="l-date">&#128197; Last updated: March 2025 &middot; Version 2.1</div>
+        <div class="l-badge">&#10003; GDPR Compliant &nbsp;&#10003; ISO 27001 &nbsp;&#10003; PDPB (India)</div>
+        <div class="l-highlight"><strong>Welcome to SkillPulse.</strong> By creating an account or using our platform, you agree to be bound by these Terms of Service. If you do not agree, please do not use our services.</div>
+        <div class="legal-section">
+          <h3>About SkillPulse</h3>
+          <p>SkillPulse is a career intelligence platform that helps job seekers analyze resumes using AI, attend virtual interviews, track real-time skill demand, and connect with employers. We are committed to providing a fair, transparent, and professional platform.</p>
+        </div>
+        <div class="legal-section">
+          <h3>Eligibility</h3>
+          <ul>
+            <li>You must be at least 18 years of age to use SkillPulse</li>
+            <li>You must provide accurate, current, and complete information during registration</li>
+            <li>You are responsible for maintaining the confidentiality of your account credentials</li>
+            <li>One person may not maintain more than one active account</li>
+            <li>Accounts created using automated means are strictly prohibited</li>
+          </ul>
+        </div>
+        <div class="legal-section">
+          <h3>Account Responsibilities</h3>
+          <p>You are solely responsible for all activities under your account. You agree to immediately notify SkillPulse of any unauthorized use or security breach. SkillPulse will not be liable for any loss resulting from your failure to secure your credentials.</p>
+        </div>
+      </div>
+      <div id="terms-usage" style="display:none">
+        <div class="legal-section">
+          <h3>Permitted Use</h3>
+          <ul>
+            <li>Upload your own resume for AI-powered ATS analysis and scoring</li>
+            <li>Participate in AI-proctored virtual interviews tailored to your role</li>
+            <li>Browse real-time market intelligence and skill demand analytics</li>
+            <li>Submit your profile to matched companies via the platform with your explicit consent</li>
+            <li>Save and manage multiple resume versions in the Version Control system</li>
+          </ul>
+        </div>
+        <div class="legal-section">
+          <h3>Prohibited Activities</h3>
+          <ul>
+            <li>Uploading resumes belonging to other individuals without their written consent</li>
+            <li>Attempting to reverse-engineer or extract data from our AI systems</li>
+            <li>Using the platform for any unlawful purpose or in violation of any applicable regulations</li>
+            <li>Impersonating any person or misrepresenting your professional qualifications</li>
+            <li>Automated scraping, crawling, or bulk data collection from the platform</li>
+            <li>Sharing your login credentials or account access with third parties</li>
+            <li>Submitting false or misleading information in interviews, profiles, or resumes</li>
+          </ul>
+        </div>
+        <div class="legal-section">
+          <h3>Intellectual Property</h3>
+          <p>All SkillPulse content &mdash; including AI scoring algorithms, UI designs, analytics data, and brand assets &mdash; is owned by or licensed to SkillPulse and protected under applicable intellectual property laws. By uploading your resume, you grant SkillPulse a limited, non-exclusive license to process and analyze your content solely to provide our services.</p>
+        </div>
+      </div>
+      <div id="terms-liability" style="display:none">
+        <div class="l-warn">&#9888;&#65039; SkillPulse AI tools provide guidance and analysis &mdash; they do not guarantee employment outcomes. Scores are AI estimates.</div>
+        <div class="legal-section">
+          <h3>Disclaimer of Warranties</h3>
+          <p>SkillPulse is provided on an "as is" basis without warranties of any kind. We do not warrant that the platform will be error-free, or that any AI scores, recommendations, or market data will be accurate for any specific purpose.</p>
+        </div>
+        <div class="legal-section">
+          <h3>Limitation of Liability</h3>
+          <ul>
+            <li>We are not responsible for decisions made by companies based on submitted profiles</li>
+            <li>AI interview scores are indicative assessments, not binding evaluations</li>
+            <li>Market data is aggregated and may not reflect real-time conditions exactly</li>
+            <li>SkillPulse does not guarantee job placement, interviews, or offers</li>
+          </ul>
+        </div>
+        <div class="legal-section">
+          <h3>Governing Law</h3>
+          <p>These Terms are governed by the laws of India. Any disputes shall be subject to the exclusive jurisdiction of courts in Bangalore, Karnataka, India.</p>
+        </div>
+        <div class="legal-section">
+          <h3>Contact Legal</h3>
+          <p>Questions about these Terms: <strong style="color:var(--pulse)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2a464f4d4b466a59414346465a5f46594f044345">[email&#160;protected]</a></strong><br>SkillPulse Technologies Pvt. Ltd., Bangalore, Karnataka 560001, India.</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="mb-btn mb-secondary" onclick="closeModal('terms')">Close</button>
+      <button class="mb-btn mb-primary" onclick="acceptAndClose()">&#10003; I Accept These Terms</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ PRIVACY MODAL ══ -->
+<div class="modal-bg" id="privacyModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-header-text"><h2>&#128274; Privacy Policy</h2><p>How we collect, use, and protect your personal information</p></div>
+      <button class="modal-close" onclick="closeModal('privacy')">&#10005;</button>
+    </div>
+    <div class="modal-tabs" id="privacyTabs">
+      <div class="modal-tab on" onclick="switchTab('privacy','collection',this)">Data We Collect</div>
+      <div class="modal-tab" onclick="switchTab('privacy','use',this)">How We Use It</div>
+      <div class="modal-tab" onclick="switchTab('privacy','rights',this)">Your Rights</div>
+    </div>
+    <div class="modal-body">
+      <div id="privacy-collection">
+        <div class="l-date">&#128197; Last updated: March 2025 &middot; Version 2.1</div>
+        <div class="l-badge">&#128274; Encrypted at Rest &nbsp;&#10003; Never Sold &nbsp;&#10003; GDPR</div>
+        <div class="l-highlight"><strong>Your privacy matters.</strong> SkillPulse collects only the minimum data needed to provide our services. We never sell your personal data to third parties.</div>
+        <div class="legal-section">
+          <h3>Information You Provide</h3>
+          <ul>
+            <li><strong style="color:#fff">Account Data:</strong> Name, email, phone, target role, experience level, location</li>
+            <li><strong style="color:#fff">Resume Content:</strong> Processed temporarily by AI for analysis; raw file not permanently stored</li>
+            <li><strong style="color:#fff">Interview Responses:</strong> Written answers stored securely for scoring and feedback</li>
+            <li><strong style="color:#fff">Profile Information:</strong> Any optional data you add to your profile</li>
+          </ul>
+        </div>
+        <div class="legal-section">
+          <h3>Automatically Collected Data</h3>
+          <ul>
+            <li>Device information (browser type, OS, screen resolution)</li>
+            <li>Usage data (pages visited, features used, session duration)</li>
+            <li>IP address (security and fraud prevention only)</li>
+            <li>Session cookies (authentication only, no cross-site tracking)</li>
+          </ul>
+        </div>
+        <div class="legal-section">
+          <h3>Resume Data Handling</h3>
+          <p>Your resume is processed by Anthropic's Claude AI API to generate ATS scores and extract profile data. The <strong style="color:var(--green)">raw resume content is not permanently stored</strong> &mdash; only analysis results (score, keywords, extracted fields) are saved to your profile.</p>
+        </div>
+      </div>
+      <div id="privacy-use" style="display:none">
+        <div class="legal-section">
+          <h3>How We Use Your Data</h3>
+          <ul>
+            <li>To provide, maintain, and improve the SkillPulse platform</li>
+            <li>To process and analyze your resume using AI systems</li>
+            <li>To generate personalized career recommendations and skill gap analysis</li>
+            <li>To facilitate connections between candidates and companies (consent required)</li>
+            <li>To send transactional emails (account verification, HR status updates)</li>
+            <li>To send marketing communications (only if you opted in during signup)</li>
+            <li>To detect and prevent fraud and security incidents</li>
+          </ul>
+        </div>
+        <div class="legal-section">
+          <h3>Data Sharing</h3>
+          <p>We do <strong style="color:#f87171">NOT</strong> sell or rent your data. We may share with:</p>
+          <ul>
+            <li><strong style="color:#fff">Companies (explicit consent):</strong> When you click "Send Resume," we share your name, email, role, and ATS score with that company's HR team only</li>
+            <li><strong style="color:#fff">Service Providers:</strong> Supabase (database), Anthropic (AI) &mdash; all bound by data processing agreements</li>
+            <li><strong style="color:#fff">Legal Requirements:</strong> When required by law, court order, or government authority</li>
+          </ul>
+        </div>
+        <div class="legal-section">
+          <h3>Data Retention</h3>
+          <ul>
+            <li>Account and profile data: retained while account is active</li>
+            <li>Interview responses: retained for 12 months</li>
+            <li>Raw resume files: deleted immediately after AI processing</li>
+            <li>Usage logs: retained for 90 days</li>
+            <li>You may request deletion at any time via Settings</li>
+          </ul>
+        </div>
+      </div>
+      <div id="privacy-rights" style="display:none">
+        <div class="l-highlight"><strong>Under GDPR, PDPB (India), and applicable privacy laws, you have these rights:</strong></div>
+        <div class="legal-section">
+          <h3>Your Data Rights</h3>
+          <ul>
+            <li><strong style="color:#fff">Access:</strong> Request a copy of all personal data we hold about you</li>
+            <li><strong style="color:#fff">Rectification:</strong> Correct any inaccurate or incomplete data</li>
+            <li><strong style="color:#fff">Erasure:</strong> Request complete deletion of your account and data</li>
+            <li><strong style="color:#fff">Portability:</strong> Receive your data in a machine-readable format (JSON/CSV)</li>
+            <li><strong style="color:#fff">Restriction:</strong> Limit how we process your data in certain circumstances</li>
+            <li><strong style="color:#fff">Objection:</strong> Opt out of marketing communications at any time</li>
+            <li><strong style="color:#fff">Withdraw Consent:</strong> Revoke any previously given consent at any time</li>
+          </ul>
+        </div>
+        <div class="legal-section">
+          <h3>Security Measures</h3>
+          <ul>
+            <li>Data encrypted at rest using AES-256</li>
+            <li>Data encrypted in transit using TLS 1.3</li>
+            <li>Row-level security (RLS) enforced at the database level</li>
+            <li>Passwords hashed using bcrypt &mdash; never stored in plaintext</li>
+            <li>Regular security audits and vulnerability assessments</li>
+          </ul>
+        </div>
+        <div class="legal-section">
+          <h3>Contact &amp; Grievances</h3>
+          <p>For privacy requests, contact our Data Protection Officer:<br><strong style="color:var(--pulse)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="710103180710120831021a181d1d01041d02145f181e">[email&#160;protected]</a></strong><br>We respond to all requests within <strong style="color:#fff">30 days</strong> in accordance with applicable law.</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="mb-btn mb-secondary" onclick="closeModal('privacy')">Close</button>
+      <button class="mb-btn mb-primary" onclick="acceptAndClose()">&#10003; I Accept This Policy</button>
+    </div>
+  </div>
+</div>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+const SB_URL="https://egfysmqrdgdukmgpqdaa.supabase.co";
+const SB_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVnZnlzbXFyZGdkdWttZ3BxZGFhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwNjcwNzksImV4cCI6MjA4ODY0MzA3OX0.dzafzM8gUgz8-57CWW7symF5BZ3KS8qLN7OadOWRpfs";
+const sb=supabase.createClient(SB_URL,SB_KEY);
+
+let termsOk=false,mktOk=true,curStep=1;
+
+function goStep(n){
+  curStep=n;
+  [1,2,3].forEach(i=>document.getElementById('step'+i).style.display=i===n?'block':'none');
+  const labs=['Step 1 of 3 \u2014 Personal Info','Step 2 of 3 \u2014 Career Profile','Step 3 of 3 \u2014 Set Password'];
+  document.getElementById('stepLabel').textContent=labs[n-1];
+  [1,2,3].forEach(i=>{const d=document.getElementById('sd'+i);d.className='s-dot '+(i<n?'done':i===n?'active':'');d.textContent=i<n?'\u2713':i;});
+  [1,2].forEach(i=>document.getElementById('sl'+i).className='s-line '+(i<n?'done':''));
+  document.getElementById('errMsg').classList.remove('show');
+}
+
+function goStep2(){
+  const fn=document.getElementById('fn').value.trim();
+  const ln=document.getElementById('ln').value.trim();
+  const em=document.getElementById('em').value.trim().toLowerCase();
+  if(!fn||!ln){showErr('Please enter your first and last name.');return;}
+  if(!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(em)){showErr('Please enter a valid email address.');return;}
+  if(em === 'chaithanya06gutti@gmail.com'){
+    showErr('⚠️ This email is reserved for the platform administrator and cannot be used for registration.');
+    return;
+  }
+  goStep(2);
+}
+function goStep3(){
+  if(!document.getElementById('role').value){showErr('Please select your target role.');return;}
+  if(!document.getElementById('expLevel').value){showErr('Please select your experience level.');return;}
+  goStep(3);
+}
+
+function vf(el,type){
+  let ok=type==='name'?el.value.trim().length>=2:/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value.trim());
+  el.classList.toggle('valid',ok&&el.value.length>0);
+  el.classList.toggle('invalid',!ok&&el.value.length>2);
+}
+
+function showErr(m){document.getElementById('errTxt').textContent=m;document.getElementById('errMsg').classList.add('show');}
+
+function strength(p){
+  const cols=['#ef4444','#f97316','#eab308','#22c55e'];
+  const hints=['Too short \u2014 min 8 characters','Add uppercase letters','Add numbers too','Perfect \u2014 very strong password!'];
+  let s=0;if(p.length>=8)s++;if(/[A-Z]/.test(p))s++;if(/[0-9]/.test(p))s++;if(/[^A-Za-z0-9]/.test(p))s++;
+  ['s1','s2','s3','s4'].forEach((id,i)=>document.getElementById(id).style.background=i<s?cols[s-1]:'var(--border)');
+  const h=document.getElementById('pwHint');
+  h.textContent=p.length===0?'Use 8+ characters with uppercase, numbers & symbols':hints[Math.min(s,3)];
+  h.style.color=s>=4?'var(--green)':s>=2?'var(--yellow)':'#f87171';
+}
+
+function checkMatch(){
+  const pw=document.getElementById('pw').value;
+  const c=document.getElementById('cpw');
+  c.classList.toggle('valid',pw===c.value&&c.value.length>0);
+  c.classList.toggle('invalid',pw!==c.value&&c.value.length>3);
+}
+
+function toggleCb(which){
+  if(which==='terms'){
+    termsOk=!termsOk;
+    const el=document.getElementById('termsCb');
+    el.className='custom-cb'+(termsOk?' checked':'');
+    el.textContent=termsOk?'\u2713':'';
+  } else {
+    mktOk=!mktOk;
+    const el=document.getElementById('mktCb');
+    el.className='custom-cb'+(mktOk?' checked':'');
+    el.textContent=mktOk?'\u2713':'';
+  }
+}
+
+function openModal(type){
+  document.getElementById(type==='terms'?'termsModal':'privacyModal').classList.add('show');
+}
+function closeModal(type){
+  document.getElementById(type==='terms'?'termsModal':'privacyModal').classList.remove('show');
+}
+function acceptAndClose(){
+  termsOk=true;
+  const cb=document.getElementById('termsCb');
+  cb.className='custom-cb checked';cb.textContent='\u2713';
+  document.querySelectorAll('.modal-bg').forEach(m=>m.classList.remove('show'));
+}
+function switchTab(modal,tab,btn){
+  const prefix=modal+'-';
+  document.querySelectorAll('[id^="'+prefix+'"]').forEach(el=>el.style.display='none');
+  document.getElementById(prefix+tab).style.display='block';
+  document.getElementById(modal+'Tabs').querySelectorAll('.modal-tab').forEach(t=>t.classList.remove('on'));
+  btn.classList.add('on');
+}
+document.querySelectorAll('.modal-bg').forEach(bg=>{
+  bg.addEventListener('click',e=>{if(e.target===bg)closeModal(bg.id==='termsModal'?'terms':'privacy');});
+});
+
+async function doSignup(){
+  document.getElementById('errMsg').classList.remove('show');
+  if(!termsOk){showErr('Please accept the Terms of Service and Privacy Policy.');return;}
+  const pw=document.getElementById('pw').value;
+  const cpw=document.getElementById('cpw').value;
+  if(pw!==cpw){showErr('Passwords do not match.');return;}
+  if(pw.length<8){showErr('Password must be at least 8 characters.');return;}
+
+  const fn=document.getElementById('fn').value.trim();
+  const ln=document.getElementById('ln').value.trim();
+  const em=document.getElementById('em').value.trim().toLowerCase();
+  const role=document.getElementById('role').value;
+  const exp=document.getElementById('expLevel').value;
+  const loc=document.getElementById('location').value||'';
+  const phone=(document.getElementById('cc').value+document.getElementById('phone').value).replace(/\s/g,'');
+
+  // Block admin email
+  if(em === 'chaithanya06gutti@gmail.com'){
+    showErr('⚠️ This email is reserved for the administrator and cannot be used for registration.');
+    return;
+  }
+
+  // Strict email validation
+  const emailRe = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  if(!emailRe.test(em)){showErr('Please enter a valid email address.');return;}
+
+  const btn=document.getElementById('createBtn');
+  btn.textContent='⏳ Creating account…';btn.disabled=true;
+
+  // Check for duplicate email in profiles table BEFORE creating auth user
+  const {data: existingProfiles} = await sb.from('profiles').select('id').eq('email', em).maybeSingle();
+  if(existingProfiles){
+    showErr('An account with this email already exists. <a href="login.html" style="color:var(--pulse);font-weight:600">Sign in →</a>');
+    btn.textContent='🚀 Create Account →';btn.disabled=false;
+    return;
+  }
+
+  console.log('Signing up:', em);
+  const {data,error}=await sb.auth.signUp({
+    email:em,password:pw,
+    options:{emailRedirectTo:window.location.origin+'/login.html',data:{first_name:fn,last_name:ln,target_role:role,hr_status:'pending',interview_unlocked:false}}
+  });
+  console.log('Signup result:', JSON.stringify({user: data?.user?.email, error}));
+
+  if(error){
+    // Handle common errors with friendly messages
+    if(error.message && error.message.toLowerCase().includes('already registered')){
+      showErr('An account with this email already exists. <a href="login.html" style="color:var(--pulse);font-weight:600">Sign in →</a>');
+    } else {
+      showErr(error.message);
+    }
+    btn.textContent='🚀 Create Account →';btn.disabled=false;
+    return;
+  }
+
+  btn.textContent='🚀 Create Account →';
+  btn.disabled=false;
+
+  // Duplicate account check (Supabase returns empty identities for existing unconfirmed)
+  if(data.user && data.user.identities && data.user.identities.length===0){
+    showErr('An account with this email already exists. <a href="login.html" style="color:var(--pulse);font-weight:600">Sign in →</a>');
+    return;
+  }
+
+  // Save profile to DB — use insert so it shows up in Registered Users immediately
+  if(data.user){
+    const {error: profileError} = await sb.from('profiles').upsert({
+      id:data.user.id,
+      email:em,
+      first_name:fn,
+      last_name:ln,
+      target_role:role,
+      experience_level:exp,
+      location:loc,
+      phone,
+      marketing_opt_in:mktOk,
+      hr_status:'pending',
+      interview_unlocked:false,
+      assessment_unlocked:false,
+      ats_score:null,
+      interview_score:null,
+      created_at:new Date().toISOString()
+    }, {onConflict:'id'});
+    if(profileError) console.warn('Profile save error:', profileError.message);
+    else console.log('Profile saved successfully for', em);
+  }
+
+  // Show verification screen
+  showVerifyScreen(em, fn);
+}
+
+function showVerifyScreen(email, name){
+  const right = document.querySelector('.right');
+  right.innerHTML = `
+    <div style="width:100%;max-width:460px;text-align:center;padding:20px 0">
+      <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,rgba(0,212,255,.15),rgba(124,58,237,.15));border:2px solid rgba(0,212,255,.3);display:flex;align-items:center;justify-content:center;font-size:36px;margin:0 auto 24px;animation:pulse 2s ease infinite">📧</div>
+      <h2 style="font-size:28px;font-weight:800;color:#fff;letter-spacing:-.8px;margin-bottom:10px">Check your inbox!</h2>
+      <p style="color:#94a3b8;font-size:15px;line-height:1.7;margin-bottom:8px">We sent a verification email to</p>
+      <div style="background:rgba(0,212,255,.08);border:1px solid rgba(0,212,255,.2);border-radius:10px;padding:12px 20px;margin-bottom:24px;font-size:15px;font-weight:700;color:#00d4ff">${email}</div>
+
+      <div style="background:#0f0f1e;border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:24px;text-align:left;margin-bottom:22px">
+        <div style="font-size:13px;font-weight:700;color:#fff;margin-bottom:14px">What to do next:</div>
+        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px">
+          <div style="width:26px;height:26px;border-radius:50%;background:#00d4ff;color:#06060f;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
+          <div style="font-size:13px;color:#94a3b8;line-height:1.5">Open the email from <strong style="color:#fff">SkillPulse (noreply@mail.app.supabase.io)</strong></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:12px">
+          <div style="width:26px;height:26px;border-radius:50%;background:#7c3aed;color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
+          <div style="font-size:13px;color:#94a3b8;line-height:1.5">Click <strong style="color:#fff">"Confirm your email"</strong> button inside</div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:12px">
+          <div style="width:26px;height:26px;border-radius:50%;background:#22c55e;color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
+          <div style="font-size:13px;color:#94a3b8;line-height:1.5">You'll be redirected to <strong style="color:#fff">Sign In</strong> — then enjoy SkillPulse!</div>
+        </div>
+      </div>
+
+      <div id="resendWrap">
+        <p style="color:#64748b;font-size:13px;margin-bottom:10px">Didn't receive the email?</p>
+        <button id="resendBtn" onclick="resendVerification('${email}')" style="padding:11px 24px;background:rgba(0,212,255,.1);color:#00d4ff;border:1px solid rgba(0,212,255,.25);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .2s">🔄 Resend Verification Email</button>
+      </div>
+
+      <div style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,.06)">
+        <a href="login.html" style="color:#94a3b8;font-size:13px;text-decoration:none">Already verified? <span style="color:#00d4ff;font-weight:600">Sign in →</span></a>
+      </div>
+      <div style="margin-top:10px">
+        <button onclick="location.reload()" style="background:none;border:none;color:#475569;font-size:12px;cursor:pointer;font-family:inherit">← Start over</button>
+      </div>
+    </div>`;
+}
+
+async function googleSignup(){
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'google',
+    options: {
+      redirectTo: window.location.origin + '/login.html',
+      queryParams: {
+        access_type: 'offline',
+        prompt: 'select_account'  // Always show account picker
+      }
+    }
+  });
+  if(error) showErr('Google sign-in failed: ' + error.message);
+}
+
+let _resendCooldown = 0;
+async function resendVerification(email){
+  const btn = document.getElementById('resendBtn');
+  if(!btn) return;
+  if(_resendCooldown > 0){ btn.textContent='⏳ Wait '+_resendCooldown+'s…'; return; }
+
+  btn.textContent='Sending…'; btn.disabled=true;
+  const {error} = await sb.auth.resend({type:'signup', email});
+  if(error){ btn.textContent='❌ '+error.message; btn.disabled=false; return; }
+
+  _resendCooldown=60;
+  const iv = setInterval(()=>{
+    _resendCooldown--;
+    if(btn) btn.textContent = _resendCooldown>0 ? '⏳ Resend in '+_resendCooldown+'s' : '🔄 Resend Verification Email';
+    if(_resendCooldown<=0){ clearInterval(iv); if(btn) btn.disabled=false; }
+  },1000);
+  btn.textContent='✅ Sent! Check your inbox';
+}
+</script>
+<script src="chatbot.js"></script>
+</body>
+</html>
